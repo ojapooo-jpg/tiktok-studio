@@ -441,16 +441,25 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     const eng = sumK(cur, "l") + sumK(cur, "c") + sumK(cur, "s");
     const hasData = cur.some((r) => r.v != null);
     const w7 = sumK(series(ch, addDays(end, -6), end), "v"), w7p = sumK(series(ch, addDays(end, -13), addDays(end, -7)), "v");
-    return {
+    const m = {
       id, ch, end, from, cur, hasData, v, trend: pv ? v / pv - 1 : null, week: w7, weekTrend: w7p ? w7 / w7p - 1 : null,
       er: v ? eng / v : null, gain: followersGain(ch, from, end), followers: lastFollowers(ch),
       posts: sumK(cur, "p"), postAgo: lastPostAgo(ch, end),
       vpp: sumK(cur, "p") ? v / sumK(cur, "p") : null,
       lives: ch.lives.filter((l) => l.date >= from && l.date <= end),
     };
+    // Without daily numbers, fall back to the latest period summary copied from TikTok Studio.
+    const p = !hasData && (ch.periods || []).slice(-1)[0];
+    if (p) {
+      m.period = p; m.v = p.views; m.trend = p.change && p.change.views != null ? p.change.views : null;
+      m.er = p.views ? ((p.likes || 0) + (p.comments || 0) + (p.shares || 0)) / p.views : null;
+      if (p.netFollowers != null) m.gain = p.netFollowers;
+    }
+    return m;
   }
+  const periodDays = (p) => Math.round((new Date(p.to) - new Date(p.from)) / 864e5) + 1;
   function health(m) {
-    if (!m.hasData) return { cls: "none", txt: "ما كاين داتا" };
+    if (!m.hasData && !m.period) return { cls: "none", txt: "ما كاين داتا" };
     const t = m.weekTrend ?? m.trend;
     if (t == null) return { cls: "none", txt: "داتا قليلة" };
     if (t >= 0.15) return { cls: "good", txt: "▲ طالع" };
@@ -500,7 +509,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
       return `<button class="card" data-ch="${id}" aria-pressed="${sel === id}">
         <div class="card-head"><div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(m.ch.name)}</h3></div><span class="pill ${h.cls}">${h.txt}</span></div>
         ${m.ch.handle ? `<div class="small num" style="color:var(--fg-3);margin-top:-8px;text-align:end">${esc(m.ch.handle)}</div>` : ""}
-        <div><div class="label">المشاهدات ف ${range} يوم</div><div class="big">${m.hasData ? fmt(m.v) : "–"} <span class="small" style="color:var(--fg-3)">${pct(m.trend)}</span></div></div>
+        <div><div class="label">${m.period ? `المشاهدات ف ${periodDays(m.period)} يوم (TikTok Studio)` : `المشاهدات ف ${range} يوم`}</div><div class="big">${m.hasData || m.period ? fmt(m.v) : "–"} <span class="small" style="color:var(--fg-3)">${pct(m.trend)}</span></div></div>
         ${m.hasData ? sparkSvg(m.cur, COLORS[id]) : `<div class="spark"></div>`}
         <div class="stats">
           <div class="stat"><span class="label">فولوورز</span><b>${fmt(m.followers)}</b></div>
@@ -518,7 +527,8 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
       const reach = mv / m.followers;
       if (reach < 0.02) tips.push(["bad", "الوصول", `آخر الفيديوهات كيجيبو ${fmt(mv)} مشاهدة فالمعدل، يعني ${(reach * 100).toFixed(1)}% من ${fmt(m.followers)} فولوور. الفيديوهات ما كتوصلش حتى للفولوورز ديالك.`]);
     }
-    if (!m.hasData) { tips.push(["none", "زيد", "دخل الأرقام ولا استورد CSV باش نقدر نعطيك نصائح."]); return { m, li, tips }; }
+    (data[id].notes || []).forEach((n) => tips.push([n.level || "warn", n.tag || "ملاحظة", n.text]));
+    if (!m.hasData) { if (!m.period) tips.push(["none", "زيد", "دخل الأرقام ولا استورد CSV باش نقدر نعطيك نصائح."]); return { m, li, tips }; }
     const t = m.weekTrend;
     if (t != null && t <= -0.2) tips.push(["bad", "بدّل", `المشاهدات نازلة ${pct(t)} هاد السيمانة. بدّل الهوك ديال أول 3 ثواني ولا جرّب نوع آخر ديال المحتوى.`]);
     else if (t != null && t >= 0.15) tips.push(["good", "زيد", `الكونط طالع ${pct(t)} هاد السيمانة. زيد فنفس النوع ديال الفيديوهات ما دام خدام.`]);
