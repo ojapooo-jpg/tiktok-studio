@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Studio ديال القنوات</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Noto+Kufi+Arabic:wght@600;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: control-room desk. Top bar = channel switcher + live lamp; summary row of channel cards;
+   "today" advice board; charts; live coach; data entry drawer at the bottom. RTL text, LTR time axes. */
+:root {
+  --bg: #f4f3f7;
+  --panel: #ffffff;
+  --sunk: #ebe9f0;
+  --line: #dcd9e4;
+  --fg: #1b1822;
+  --fg-2: #56516a;
+  --fg-3: #847f96;
+  --accent: #a3285f;
+  --accent-soft: #f6e3ec;
+  --on-accent: #ffffff;
+  --good: #0f7a3d; --good-soft: #e1f3e8;
+  --warn: #9a5b00; --warn-soft: #fbefd6;
+  --bad: #c0302b;  --bad-soft: #fbe4e2;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100;
+  --heat-0: #eef3fb; --heat-1: #2a78d6;
+  --f-display: "Noto Kufi Arabic", "IBM Plex Sans Arabic", Tahoma, sans-serif;
+  --f-body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15131b; --panel: #1e1b26; --sunk: #272332; --line: #353042;
+  --fg: #f1eff6; --fg-2: #bdb7cc; --fg-3: #8d87a0;
+  --accent: #e2689a; --accent-soft: #3a2030; --on-accent: #1a0f15;
+  --good: #4cc781; --good-soft: #17301f; --warn: #f0b545; --warn-soft: #34290f; --bad: #f07a72; --bad-soft: #3a1c1b;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500;
+  --heat-0: #222033; --heat-1: #5aa0f0;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #15131b; --panel: #1e1b26; --sunk: #272332; --line: #353042;
+  --fg: #f1eff6; --fg-2: #bdb7cc; --fg-3: #8d87a0;
+  --accent: #e2689a; --accent-soft: #3a2030; --on-accent: #1a0f15;
+  --good: #4cc781; --good-soft: #17301f; --warn: #f0b545; --warn-soft: #34290f; --bad: #f07a72; --bad-soft: #3a1c1b;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500;
+  --heat-0: #222033; --heat-1: #5aa0f0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 60px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.35; }
+h1 { font-size: 1.55rem; font-weight: 800; }
+h2 { font-size: 1.12rem; font-weight: 800; }
+h3 { font-size: .98rem; font-weight: 600; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+.muted { color: var(--fg-2); }
+.small { font-size: .84rem; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* top bar */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.lamp { width: 14px; height: 14px; border-radius: 50%; background: var(--fg-3); box-shadow: 0 0 0 4px var(--sunk); flex: none; }
+.lamp.on { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px var(--accent-soft); } }
+@media (prefers-reduced-motion: reduce) { .lamp.on { animation: none; } }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 14px; display: inline-flex; align-items: center; gap: 7px; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+.banner { background: var(--warn-soft); color: var(--fg); border-radius: var(--r); padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.banner[hidden] { display: none !important; }
+
+/* channel cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; text-align: start; }
+button.card { cursor: pointer; }
+button.card[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.card-name h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.big { font-family: var(--f-num); font-size: 1.6rem; font-weight: 500; line-height: 1.1; direction: ltr; unicode-bidi: isolate; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stat { display: flex; flex-direction: column; }
+.stat b { font-family: var(--f-num); font-weight: 500; font-size: .95rem; direction: ltr; unicode-bidi: isolate; text-align: start; }
+.label { font-size: .74rem; color: var(--fg-3); letter-spacing: .02em; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: .78rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.none { background: var(--sunk); color: var(--fg-2); }
+.spark { width: 100%; height: 34px; display: block; }
+
+/* panels */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* advice board */
+.advice { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.adv { border-radius: 8px; background: var(--sunk); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.adv-row { display: flex; gap: 10px; align-items: flex-start; }
+.adv-row .k { font-size: .76rem; color: var(--fg-3); min-width: 74px; padding-top: 2px; }
+.tips { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.tips li { display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; }
+.tips li .pill { flex: none; }
+
+/* charts */
+.chart { position: relative; width: 100%; overflow: hidden; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart text { fill: var(--fg-3); font-family: var(--f-num); font-size: 11px; }
+.grid-line { stroke: var(--line); stroke-width: 1; }
+.tip { position: absolute; pointer-events: none; background: var(--fg); color: var(--bg); font-size: .8rem; padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 2; }
+.tip[hidden] { display: none !important; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .84rem; color: var(--fg-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.heat { display: grid; grid-template-columns: 34px repeat(24, minmax(0, 1fr)); gap: 2px; direction: ltr; font-family: var(--f-num); font-size: 10px; color: var(--fg-3); }
+.heat .cell { aspect-ratio: 1; border-radius: 2px; max-width: 100%; }
+.heat .cell.best { outline: 2px solid var(--accent); outline-offset: -1px; }
+.heat .rowlab { font-family: var(--f-body); font-size: 11px; display: flex; align-items: center; }
+.empty { border: 1px dashed var(--line); border-radius: 8px; padding: 18px; color: var(--fg-2); text-align: center; font-size: .9rem; }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: start; white-space: nowrap; }
+th { font-weight: 500; color: var(--fg-3); font-size: .78rem; }
+td.n { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+
+/* live coach */
+.coach { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; }
+@media (max-width: 760px) { .coach { grid-template-columns: 1fr; } }
+.signal { border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 6px; background: var(--sunk); }
+.signal.good { background: var(--good-soft); }
+.signal.warn { background: var(--warn-soft); }
+.signal.bad { background: var(--bad-soft); }
+.signal .verdict { font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; }
+.signal.good .verdict { color: var(--good); } .signal.warn .verdict { color: var(--warn); } .signal.bad .verdict { color: var(--bad); }
+.clock { font-family: var(--f-num); font-size: 2rem; direction: ltr; unicode-bidi: isolate; }
+
+/* forms */
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 14px; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.field label { font-size: .78rem; color: var(--fg-2); }
+.field input, .field select, textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 6px 9px; min-width: 0; }
+.field input[type="number"] { width: 110px; direction: ltr; }
+.field input[type="date"] { direction: ltr; }
+textarea { width: 100%; min-height: 90px; font-family: var(--f-num); font-size: .8rem; direction: ltr; }
+details.entry { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(--f-display); font-weight: 800; }
+.entry-body { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 18px; }
+.entry-sec { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 8px; z-index: 20; font-size: .9rem; }
+.toast[hidden] { display: none !important; }
+</style>
+
+<div class="wrap" dir="rtl" lang="ar">
+  <header class="top">
+    <div class="brand">
+      <span class="lamp" id="lamp" title="لايف"></span>
+      <div>
+        <h1>Studio ديال القنوات</h1>
+        <div class="muted small" id="subtitle">الأناليتيك ديال 4 ديال الكونطات ديال تيك توك فبلاصة وحدة</div>
+      </div>
+    </div>
+    <div class="seg" id="rangeSeg" role="group" aria-label="المدة">
+      <button data-range="7" aria-pressed="false">7 يام</button>
+      <button data-range="28" aria-pressed="true">28 يوم</button>
+      <button data-range="60" aria-pressed="false">60 يوم</button>
+    </div>
+  </header>
+
+  <div class="banner" id="demoBanner" hidden>
+    <span>هادي داتا ديال <b>المثال</b> باش تشوف كيفاش خدام الداشبورد. ماشي الأرقام ديالك.</span>
+    <button class="btn" id="clearDemo">مسح المثال وبدا بالداتا ديالي</button>
+  </div>
+
+  <section class="cards" id="cards" aria-label="القنوات"></section>
+
+  <section class="panel" aria-labelledby="advTitle">
+    <div class="panel-head">
+      <h2 id="advTitle">شنو ندير اليوم؟</h2>
+      <span class="muted small" id="advDate"></span>
+    </div>
+    <div class="advice" id="advice"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel" aria-labelledby="viewsTitle">
+      <div class="panel-head"><h2 id="viewsTitle">المشاهدات كل نهار</h2><span class="muted small" id="viewsSub"></span></div>
+      <div class="legend" id="viewsLegend"></div>
+      <div class="chart" id="viewsChart"></div>
+    </section>
+    <section class="panel" aria-labelledby="heatTitle">
+      <div class="panel-head"><h2 id="heatTitle">فوقاش الفولوورز ديالك أونلاين</h2><span class="muted small" id="heatSub"></span></div>
+      <div id="heat"></div>
+      <div class="muted small">الخانة لي عليها الإطار هي أحسن ساعة. انشر قبلها بساعة باش الفيديو يلقى الناس.</div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="coachTitle" id="coachPanel">
+    <div class="panel-head">
+      <h2 id="coachTitle">مدرب اللايف: فوقاش تكمّل وفوقاش توقف</h2>
+      <span class="muted small" id="coachSub"></span>
+    </div>
+    <div class="coach">
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <div class="signal" id="signal">
+          <span class="label">الإشارة</span>
+          <span class="verdict" id="verdict">ما كاين لايف دابا</span>
+          <span id="verdictWhy" class="small">اختار الكونط وبدا اللايف. كل 5 دقايق دخل شحال من واحد كيتفرج.</span>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="liveChannel">الكونط</label>
+            <select id="liveChannel"></select>
+          </div>
+          <span class="clock" id="clock">00:00</span>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="liveStart">بدا اللايف</button>
+          <div class="field">
+            <label for="liveViewers">شحال كيتفرجو دابا</label>
+            <input type="number" id="liveViewers" min="0" inputmode="numeric" disabled>
+          </div>
+          <button class="btn" id="liveAdd" disabled>سجّل</button>
+        </div>
+        <div class="row">
+          <div class="field"><label for="liveNf">فولوورز جداد</label><input type="number" id="liveNf" min="0" disabled></div>
+          <div class="field"><label for="liveGifts">الهدايا (diamonds)</label><input type="number" id="liveGifts" min="0" disabled></div>
+          <button class="btn" id="liveStop" disabled>سالي وسجّل اللايف</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <div class="chart" id="liveChart"></div>
+        <div class="legend small"><span><i class="dot" style="background:var(--accent)"></i>المتفرجين دابا</span><span><i class="dot" style="background:var(--fg-3)"></i>60% من الذروة (خط الخروج)</span></div>
+      </div>
+    </div>
+    <h3>اللايفات اللي فاتو</h3>
+    <div class="tbl-wrap" id="livesTable"></div>
+  </section>
+
+  <details class="entry" id="entry">
+    <summary>زيد الداتا (يدوي، CSV من TikTok Studio، باك أب)</summary>
+    <div class="entry-body">
+      <div class="entry-sec">
+        <h3>الأسماء ديال الكونطات</h3>
+        <div class="row" id="namesRow"></div>
+        <div><button class="btn" id="saveNames">حفظ الأسماء</button></div>
+      </div>
+
+      <form class="entry-sec" id="dayForm">
+        <h3>الأرقام ديال نهار</h3>
+        <div class="row">
+          <div class="field"><label for="dCh">الكونط</label><select id="dCh"></select></div>
+          <div class="field"><label for="dDate">النهار</label><input type="date" id="dDate" required></div>
+          <div class="field"><label for="dV">المشاهدات</label><input type="number" id="dV" min="0"></div>
+          <div class="field"><label for="dL">لايكات</label><input type="number" id="dL" min="0"></div>
+          <div class="field"><label for="dC">كومنطيرات</label><input type="number" id="dC" min="0"></div>
+          <div class="field"><label for="dS">بارطاج</label><input type="number" id="dS" min="0"></div>
+          <div class="field"><label for="dF">مجموع الفولوورز</label><input type="number" id="dF" min="0"></div>
+          <div class="field"><label for="dP">فيديوهات منشورين</label><input type="number" id="dP" min="0"></div>
+        </div>
+        <div><button class="btn primary" type="submit">حفظ النهار</button></div>
+      </form>
+
+      <form class="entry-sec" id="liveForm">
+        <h3>زيد لايف قديم</h3>
+        <div class="row">
+          <div class="field"><label for="lCh">الكونط</label><select id="lCh"></select></div>
+          <div class="field"><label for="lDate">النهار</label><input type="date" id="lDate" required></div>
+          <div class="field"><label for="lHour">ساعة البداية</label><input type="number" id="lHour" min="0" max="23" required></div>
+          <div class="field"><label for="lDur">المدة (دقايق)</label><input type="number" id="lDur" min="1" required></div>
+          <div class="field"><label for="lPeak">الذروة</label><input type="number" id="lPeak" min="0"></div>
+          <div class="field"><label for="lAvg">المعدل</label><input type="number" id="lAvg" min="0"></div>
+          <div class="field"><label for="lNf">فولوورز جداد</label><input type="number" id="lNf" min="0"></div>
+          <div class="field"><label for="lG">الهدايا</label><input type="number" id="lG" min="0"></div>
+        </div>
+        <div class="field"><label for="lCurve">المتفرجين كل 5 دقايق (اختياري، مفرّقين بفاصلة)</label><input id="lCurve" placeholder="12, 30, 48, 55, 41, 33" style="direction:ltr"></div>
+        <div><button class="btn primary" type="submit">حفظ اللايف</button></div>
+      </form>
+
+      <div class="entry-sec">
+        <h3>استيراد CSV من TikTok Studio</h3>
+        <p class="muted small" style="margin:0">من TikTok Studio ← Analytics ← Download data. كيفهم الملفات ديال Overview (Date, Video Views, Likes, Comments, Shares)، Followers (Date, Followers) و FollowerActivity (Date, Hour, Active followers).</p>
+        <div class="row">
+          <div class="field"><label for="csvCh">الكونط</label><select id="csvCh"></select></div>
+          <div class="field"><label for="csvFile">الملف</label><input type="file" id="csvFile" accept=".csv,text/csv" multiple></div>
+        </div>
+      </div>
+
+      <form class="entry-sec" id="ghForm">
+        <h3>التخزين ف GitHub</h3>
+        <p class="muted small" style="margin:0">الداتا كاملة كتتحفظ فملف فالريبو ديالك، وكل حفظ كيولّي commit. التوكن كيبقى غير فهاد الجهاز. دخلو مرة وحدة فكل جهاز (البيسي والتليفون).</p>
+        <div class="row">
+          <div class="field"><label for="ghRepo">الريبو</label><input id="ghRepo" style="direction:ltr" placeholder="username/repo-name"></div>
+          <div class="field"><label for="ghPath">الملف</label><input id="ghPath" style="direction:ltr" placeholder="data/channels.json"></div>
+          <div class="field"><label for="ghToken">التوكن (Fine-grained, Contents: Read and write)</label><input id="ghToken" type="password" style="direction:ltr" autocomplete="off" placeholder="github_pat_…"></div>
+        </div>
+        <div class="row">
+          <button class="btn primary" type="submit">ربط مع GitHub</button>
+          <button class="btn ghost" type="button" id="ghForget">نسى التوكن فهاد الجهاز</button>
+        </div>
+      </form>
+
+      <div class="entry-sec">
+        <h3>باك أب</h3>
+        <p class="muted small" style="margin:0">نسخ الداتا كاملة باش تحتافظ بيها، ولا لصق باك أب قديم ورجعو.</p>
+        <textarea id="backup" aria-label="باك أب JSON"></textarea>
+        <div class="row">
+          <button class="btn" id="exportBtn">نسخ الداتا</button>
+          <button class="btn" id="importBtn">رجّع من الباك أب</button>
+          <button class="btn ghost" id="demoBtn">عمّر بداتا ديال المثال</button>
+        </div>
+      </div>
+    </div>
+  </details>
+  <p class="muted small" id="storeNote"></p>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+  const IDS = ["c1", "c2", "c3", "c4"];
+  const COLORS = { c1: "var(--c1)", c2: "var(--c2)", c3: "var(--c3)", c4: "var(--c4)" };
+  const DAYS_AR = ["الحد", "الاثنين", "الثلاث", "الربع", "الخميس", "الجمعة", "السبت"];
+  const DROP = 0.6; // leave a live once viewers fall under 60% of the peak
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (n) => n == null || isNaN(n) ? "–" : Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e4 ? (n / 1e3).toFixed(1) + "K" : Math.round(n).toLocaleString("en-US");
+  const pct = (x) => x == null || !isFinite(x) ? "–" : (x > 0 ? "+" : "") + Math.round(x * 100) + "%";
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const addDays = (s, n) => { const d = new Date(s + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+  const today = () => { const d = new Date(); return iso(new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12))); };
+  const median = (a) => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const hh = (h) => String((h + 24) % 24).padStart(2, "0") + ":00";
+
+  function blank(id, i) { return { name: "الكونط " + (i + 1), handle: "", demo: false, days: {}, act: {}, lives: [] }; }
+
+  /* ---------- state + storage ---------- */
+  let data = {}; IDS.forEach((id, i) => data[id] = blank(id, i));
+  let sel = "all", range = 28, db = null;
+  const LS = "tt-studio-v1";
+  try { const p = JSON.parse(localStorage.getItem("tt-studio-ui") || "{}"); if (p.sel) sel = p.sel; if (p.range) range = p.range; } catch (e) {}
+  function saveUi() { try { localStorage.setItem("tt-studio-ui", JSON.stringify({ sel, range })); } catch (e) {} }
+  function loadLocal() { try { const p = JSON.parse(localStorage.getItem(LS) || "null"); if (p) IDS.forEach((id, i) => data[id] = Object.assign(blank(id, i), p[id] || {})); } catch (e) {} }
+
+  /* GitHub storage: the whole dataset lives in one JSON file in the user's repo. */
+  const GH_KEY = "tt-studio-gh";
+  const GH_DEFAULT = { repo: "", path: "data/channels.json", token: "" };
+  let gh = Object.assign({}, GH_DEFAULT), ghSha = null, ghTimer = null, ghDirty = false, ghBusy = null;
+  try { Object.assign(gh, JSON.parse(localStorage.getItem(GH_KEY) || "{}")); } catch (e) {}
+  const ghOn = () => !!(gh.token && gh.repo);
+  const b64enc = (s) => { const b = new TextEncoder().encode(s); let t = ""; for (let i = 0; i < b.length; i += 0x8000) t += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(t); };
+  const b64dec = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, "")), (c) => c.charCodeAt(0)));
+  const ghUrl = () => `https://api.github.com/repos/${gh.repo.split("/").map(encodeURIComponent).join("/")}/contents/${gh.path.split("/").map(encodeURIComponent).join("/")}`;
+  const ghHeaders = () => ({ Authorization: "Bearer " + gh.token, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" });
+  function ghNote(t) { $("storeNote").textContent = t; }
+  function ghErr(status) {
+    if (status === 401) return "التوكن غالط ولا سالا. صاوب واحد جديد.";
+    if (status === 403) return "التوكن ما عندوش الحق يكتب. عطيه Contents: Read and write على هاد الريبو.";
+    if (status === 404) return "ما لقيتش الريبو. تأكد من السمية وبلي التوكن عندو الحق عليه.";
+    return "GitHub رجع خطأ " + status + ".";
+  }
+  async function ghLoad() {
+    const r = await fetch(ghUrl() + "?t=" + Date.now(), { headers: ghHeaders(), cache: "no-store" });
+    if (r.status === 404) {
+      const repo = await fetch(`https://api.github.com/repos/${gh.repo}`, { headers: ghHeaders() });
+      if (!repo.ok) throw new Error(ghErr(repo.status));
+      ghSha = null; return null; // repo exists, file not created yet
+    }
+    if (!r.ok) throw new Error(ghErr(r.status));
+    const j = await r.json(); ghSha = j.sha;
+    return JSON.parse(b64dec(j.content || "") || "{}");
+  }
+  function applyRemote(p) { IDS.forEach((id, i) => data[id] = Object.assign(blank(id, i), (p && p[id]) || {})); }
+  async function ghSave() {
+    ghDirty = false;
+    const body = (sha) => JSON.stringify({ message: "تحديث الداتا ديال الداشبورد", content: b64enc(JSON.stringify(data, null, 1)), ...(sha ? { sha } : {}) });
+    let r = await fetch(ghUrl(), { method: "PUT", headers: ghHeaders(), body: body(ghSha) });
+    if (r.status === 409 || r.status === 422) { // file changed on another device: take its sha, keep this device's latest state
+      const cur = await fetch(ghUrl() + "?t=" + Date.now(), { headers: ghHeaders(), cache: "no-store" });
+      ghSha = cur.ok ? (await cur.json()).sha : null;
+      r = await fetch(ghUrl(), { method: "PUT", headers: ghHeaders(), body: body(ghSha) });
+    }
+    if (!r.ok) { ghDirty = true; throw new Error(ghErr(r.status)); }
+    ghSha = (await r.json()).content.sha;
+    const t = new Date(); ghNote(`محفوظ ف GitHub (${gh.repo}) · آخر حفظ ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`);
+  }
+  function ghQueue() {
+    ghDirty = true; clearTimeout(ghTimer); ghNote("كيتحفظ ف GitHub…");
+    ghTimer = setTimeout(() => { ghBusy = (ghBusy || Promise.resolve()).then(ghSave).catch((e) => { ghNote("ما تحفظش ف GitHub: " + e.message); toast(e.message); }); }, 1200);
+  }
+
+  async function persist(id) {
+    try { localStorage.setItem(LS, JSON.stringify(data)); } catch (e) {}
+    if (ghOn()) { ghQueue(); return; }
+    if (db) {
+      try { await db.doc("channels/" + id).set(JSON.parse(JSON.stringify(data[id]))); }
+      catch (e) { toast("ما تحفظاتش الداتا: " + (e && e.message || e)); }
+    } else {
+      try { localStorage.setItem(LS, JSON.stringify(data)); } catch (e) { toast("المتصفح ما خلاش نحفظ. دير باك أب."); }
+    }
+  }
+
+  /* ---------- analytics ---------- */
+  function series(ch, from, to) { const out = []; for (let d = from; d <= to; d = addDays(d, 1)) out.push({ d, ...(ch.days[d] || {}) }); return out; }
+  function lastDate() { let m = null; IDS.forEach((id) => Object.keys(data[id].days).forEach((d) => { if (!m || d > m) m = d; })); return m || today(); }
+  function sumK(rows, k) { return rows.reduce((s, r) => s + (+r[k] || 0), 0); }
+  function followersGain(ch, from, to) {
+    const ds = Object.keys(ch.days).filter((d) => d >= addDays(from, -1) && d <= to && ch.days[d].f != null).sort();
+    if (ds.length < 2) return null; return ch.days[ds[ds.length - 1]].f - ch.days[ds[0]].f;
+  }
+  function lastFollowers(ch) { const ds = Object.keys(ch.days).filter((d) => ch.days[d].f != null).sort(); return ds.length ? ch.days[ds[ds.length - 1]].f : null; }
+  function lastPostAgo(ch, end) { const ds = Object.keys(ch.days).filter((d) => +ch.days[d].p > 0).sort(); if (!ds.length) return null; return Math.round((new Date(end) - new Date(ds[ds.length - 1])) / 864e5); }
+
+  function metrics(id) {
+    const ch = data[id], end = lastDate(), from = addDays(end, -(range - 1)), pFrom = addDays(from, -range), pTo = addDays(from, -1);
+    const cur = series(ch, from, end), prev = series(ch, pFrom, pTo);
+    const v = sumK(cur, "v"), pv = sumK(prev, "v");
+    const eng = sumK(cur, "l") + sumK(cur, "c") + sumK(cur, "s");
+    const hasData = cur.some((r) => r.v != null);
+    const w7 = sumK(series(ch, addDays(end, -6), end), "v"), w7p = sumK(series(ch, addDays(end, -13), addDays(end, -7)), "v");
+    return {
+      id, ch, end, from, cur, hasData, v, trend: pv ? v / pv - 1 : null, week: w7, weekTrend: w7p ? w7 / w7p - 1 : null,
+      er: v ? eng / v : null, gain: followersGain(ch, from, end), followers: lastFollowers(ch),
+      posts: sumK(cur, "p"), postAgo: lastPostAgo(ch, end),
+      vpp: sumK(cur, "p") ? v / sumK(cur, "p") : null,
+      lives: ch.lives.filter((l) => l.date >= from && l.date <= end),
+    };
+  }
+  function health(m) {
+    if (!m.hasData) return { cls: "none", txt: "ما كاين داتا" };
+    const t = m.weekTrend ?? m.trend;
+    if (t == null) return { cls: "none", txt: "داتا قليلة" };
+    if (t >= 0.15) return { cls: "good", txt: "▲ طالع" };
+    if (t <= -0.2) return { cls: "bad", txt: "▼ نازل" };
+    return { cls: "warn", txt: "● مستقر" };
+  }
+  function activityFor(ids) {
+    const grid = Array.from({ length: 7 }, () => Array(24).fill(0)); let any = false;
+    ids.forEach((id) => { const a = data[id].act || {}; for (let w = 0; w < 7; w++) (a[w] || []).forEach((v, h) => { if (v) { grid[w][h] += +v; any = true; } }); });
+    return any ? grid : null;
+  }
+  function bestHours(grid, wd, n) { return grid[wd].map((v, h) => ({ h, v })).sort((a, b) => b.v - a.v).slice(0, n); }
+  function dropMinute(l) {
+    const c = l.curve || []; if (c.length < 3) return null;
+    let pk = 0; c.forEach((v, i) => { if (v > c[pk]) pk = i; });
+    for (let i = pk + 1; i < c.length; i++) if (c[i] < c[pk] * DROP) return i * 5;
+    return null;
+  }
+  function liveInsight(id) {
+    const lives = data[id].lives; const out = { n: lives.length };
+    const drops = lives.map(dropMinute).filter((x) => x != null);
+    out.stopAt = median(drops.length ? drops : lives.map((l) => +l.dur).filter(Boolean));
+    out.fromCurves = drops.length > 0;
+    const byHour = {};
+    lives.forEach((l) => { const k = +l.hour; const s = ((+l.nf || 0) * 3 + (+l.avg || 0) + (+l.gifts || 0) / 50) / Math.max(1, (+l.dur || 60) / 60); (byHour[k] = byHour[k] || []).push(s); });
+    const hs = Object.entries(byHour).map(([h, a]) => ({ h: +h, s: a.reduce((x, y) => x + y, 0) / a.length, n: a.length })).sort((a, b) => b.s - a.s);
+    out.bestHour = lives.length >= 3 && hs.length ? hs[0].h : null;
+    out.nfPerHour = lives.length ? lives.reduce((s, l) => s + (+l.nf || 0), 0) / Math.max(1, lives.reduce((s, l) => s + (+l.dur || 0), 0) / 60) : null;
+    return out;
+  }
+
+  /* ---------- rendering ---------- */
+  const visible = () => sel === "all" ? IDS : [sel];
+
+  function sparkSvg(rows, color) {
+    const vals = rows.map((r) => +r.v || 0); const max = Math.max(1, ...vals); const W = 200, H = 34;
+    if (vals.length < 2) return "";
+    const pts = vals.map((v, i) => [i / (vals.length - 1) * W, H - 3 - v / max * (H - 6)]);
+    const d = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
+    const e = pts[pts.length - 1];
+    return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" style="direction:ltr"><path d="${d}L${W} ${H}L0 ${H}Z" fill="${color}" opacity=".14"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${e[0]}" cy="${e[1]}" r="3" fill="${color}"/></svg>`;
+  }
+
+  function renderCards() {
+    $("cards").innerHTML = IDS.map((id) => {
+      const m = metrics(id), h = health(m);
+      return `<button class="card" data-ch="${id}" aria-pressed="${sel === id}">
+        <div class="card-head"><div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(m.ch.name)}</h3></div><span class="pill ${h.cls}">${h.txt}</span></div>
+        ${m.ch.handle ? `<div class="small num" style="color:var(--fg-3);margin-top:-8px;text-align:end">${esc(m.ch.handle)}</div>` : ""}
+        <div><div class="label">المشاهدات ف ${range} يوم</div><div class="big">${m.hasData ? fmt(m.v) : "–"} <span class="small" style="color:var(--fg-3)">${pct(m.trend)}</span></div></div>
+        ${m.hasData ? sparkSvg(m.cur, COLORS[id]) : `<div class="spark"></div>`}
+        <div class="stats">
+          <div class="stat"><span class="label">فولوورز</span><b>${fmt(m.followers)}</b></div>
+          <div class="stat"><span class="label">ربح</span><b>${m.gain == null ? "–" : (m.gain >= 0 ? "+" : "") + fmt(m.gain)}</b></div>
+          <div class="stat"><span class="label">التفاعل</span><b>${m.er == null ? "–" : (m.er * 100).toFixed(1) + "%"}</b></div>
+        </div>
+      </button>`;
+    }).join("");
+  }
+
+  function tipsFor(id) {
+    const m = metrics(id), li = liveInsight(id), tips = [];
+    const rv = (data[id].profile && data[id].profile.recentVideoViews) || [], mv = median(rv);
+    if (mv != null && m.followers) {
+      const reach = mv / m.followers;
+      if (reach < 0.02) tips.push(["bad", "الوصول", `آخر الفيديوهات كيجيبو ${fmt(mv)} مشاهدة فالمعدل، يعني ${(reach * 100).toFixed(1)}% من ${fmt(m.followers)} فولوور. الفيديوهات ما كتوصلش حتى للفولوورز ديالك.`]);
+    }
+    if (!m.hasData) { tips.push(["none", "زيد", "دخل الأرقام ولا استورد CSV باش نقدر نعطيك نصائح."]); return { m, li, tips }; }
+    const t = m.weekTrend;
+    if (t != null && t <= -0.2) tips.push(["bad", "بدّل", `المشاهدات نازلة ${pct(t)} هاد السيمانة. بدّل الهوك ديال أول 3 ثواني ولا جرّب نوع آخر ديال المحتوى.`]);
+    else if (t != null && t >= 0.15) tips.push(["good", "زيد", `الكونط طالع ${pct(t)} هاد السيمانة. زيد فنفس النوع ديال الفيديوهات ما دام خدام.`]);
+    if (m.postAgo != null && m.postAgo >= 2) tips.push(["warn", "انشر", `ما نشرتيش من ${m.postAgo} يام. الكونط كيبرد، انشر اليوم.`]);
+    if (m.er != null && m.er < 0.04) tips.push(["warn", "تفاعل", `التفاعل ${(m.er * 100).toFixed(1)}% ضعيف. سول سؤال فالكابشن وجاوب على الكومنطيرات.`]);
+    else if (m.er != null && m.er >= 0.1) tips.push(["good", "تفاعل", `التفاعل ${(m.er * 100).toFixed(1)}% مزيان بزاف.`]);
+    if (m.gain != null && m.gain < 0) tips.push(["bad", "فولوورز", `خسرتي ${fmt(-m.gain)} فولوور. شوف آخر فيديوهات شنو بدّلتي.`]);
+    if (li.n && li.nfPerHour != null && li.nfPerHour < 2) tips.push(["warn", "لايف", "اللايفات كيجيبو فولوورز قلال. قصّر اللايف ولا بدّل الساعة."]);
+    if (!tips.length) tips.push(["good", "مزيان", "كلشي مستقر. حافظ على نفس الريتم."]);
+    return { m, li, tips };
+  }
+
+  function renderAdvice() {
+    const wd = new Date().getDay();
+    $("advDate").textContent = "اليوم " + DAYS_AR[wd];
+    $("advice").innerHTML = visible().map((id) => {
+      const { li, tips } = tipsFor(id);
+      const grid = activityFor([id]);
+      const best = grid ? bestHours(grid, wd, 2) : [];
+      const post = best.length ? best.map((b) => `<span class="num">${hh(b.h - 1)}</span>`).join(" و ") : "<span class='muted'>ما كاين داتا ديال النشاط</span>";
+      const liveH = li.bestHour != null ? li.bestHour : (best[0] ? best[0].h : null);
+      const liveTxt = liveH == null ? "<span class='muted'>–</span>" : `<span class="num">${hh(liveH)}</span>` + (li.bestHour != null ? " <span class='muted small'>(من اللايفات ديالك)</span>" : " <span class='muted small'>(وقت الذروة)</span>");
+      const stop = li.stopAt ? `<span class="num">${Math.round(li.stopAt)}</span> دقيقة` + (li.fromCurves ? " <span class='muted small'>(من بعد كيطيحو المتفرجين)</span>" : "") : "<span class='muted'>سجّل لايفات باش نحسبها</span>";
+      return `<div class="adv">
+        <div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(data[id].name)}</h3></div>
+        <div class="adv-row"><span class="k">انشر مع</span><div>${post}</div></div>
+        <div class="adv-row"><span class="k">دير لايف مع</span><div>${liveTxt}</div></div>
+        <div class="adv-row"><span class="k">طوّل اللايف</span><div>${stop}</div></div>
+        <ul class="tips">${tips.map(([c, k, t]) => `<li><span class="pill ${c}">${k}</span><span>${esc(t)}</span></li>`).join("")}</ul>
+      </div>`;
+    }).join("");
+  }
+
+  function lineChart(el, sets, opts) {
+    // sets: [{id,color,label,vals:[{x:string,y:number|null}]}]
+    const W = 640, H = 240, L = 46, R = 70, T = 12, B = 26;
+    const n = sets[0] ? sets[0].vals.length : 0;
+    const maxY = Math.max(1, ...sets.flatMap((s) => s.vals.map((p) => p.y || 0)));
+    const step = niceStep(maxY / 4); const top = Math.ceil(maxY / step) * step;
+    const x = (i) => L + (n <= 1 ? 0 : i / (n - 1) * (W - L - R)), y = (v) => T + (1 - v / top) * (H - T - B);
+    let g = "";
+    for (let v = 0; v <= top + 1e-9; v += step) g += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`;
+    const ticks = Math.min(6, n); for (let k = 0; k < ticks; k++) { const i = Math.round(k * (n - 1) / Math.max(1, ticks - 1)); const lab = sets[0].vals[i].x; g += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${opts.xfmt ? opts.xfmt(lab) : lab}</text>`; }
+    let marks = "", labels = [];
+    sets.forEach((s) => {
+      const pts = s.vals.map((p, i) => p.y == null ? null : [x(i), y(p.y)]);
+      let d = "", pen = false; pts.forEach((p) => { if (!p) { pen = false; return; } d += (pen ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); pen = true; });
+      if (sets.length === 1 && opts.area) marks += `<path d="${d}L${x(n - 1)} ${y(0)}L${x(0)} ${y(0)}Z" fill="${s.color}" opacity=".12"/>`;
+      marks += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+      const lastI = pts.map((p, i) => p ? i : -1).filter((i) => i >= 0).pop();
+      if (lastI != null) { marks += `<circle cx="${pts[lastI][0]}" cy="${pts[lastI][1]}" r="4" fill="${s.color}" stroke="var(--panel)" stroke-width="2"/>`; labels.push({ y: pts[lastI][1], x: pts[lastI][0], t: s.label }); }
+    });
+    if (opts.hline != null) marks += `<line x1="${L}" x2="${W - R}" y1="${y(opts.hline)}" y2="${y(opts.hline)}" stroke="var(--fg-3)" stroke-dasharray="4 4"/>`;
+    labels.sort((a, b) => a.y - b.y); for (let i = 1; i < labels.length; i++) if (labels[i].y - labels[i - 1].y < 13) labels[i].y = labels[i - 1].y + 13;
+    labels.forEach((l) => marks += `<text x="${l.x + 8}" y="${l.y + 4}" style="fill:var(--fg-2);font-family:var(--f-body)">${esc(l.t)}</text>`);
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="direction:ltr" role="img" aria-label="${esc(opts.aria || "")}">${g}${marks}<line id="${el.id}-x" class="grid-line" y1="${T}" y2="${H - B}" stroke-width="1" visibility="hidden"/><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" data-hit/></svg><div class="tip" hidden></div>`;
+    const svg = el.querySelector("svg"), tip = el.querySelector(".tip"), xl = el.querySelector("line[id]");
+    const move = (ev) => {
+      const r = svg.getBoundingClientRect(); const sx = (ev.clientX - r.left) / r.width * W;
+      const i = Math.max(0, Math.min(n - 1, Math.round((sx - L) / Math.max(1, W - L - R) * (n - 1))));
+      xl.setAttribute("x1", x(i)); xl.setAttribute("x2", x(i)); xl.setAttribute("visibility", "visible");
+      tip.innerHTML = `<div class="num">${esc(opts.xfmt ? opts.xfmt(sets[0].vals[i].x, true) : sets[0].vals[i].x)}</div>` + sets.map((s) => `<div><i class="dot" style="display:inline-block;background:${s.color}"></i> ${esc(s.label)}: <span class="num">${fmt(s.vals[i].y)}</span></div>`).join("");
+      tip.hidden = false; const px = x(i) / W * r.width; tip.style.top = "6px";
+      tip.style.left = (px > r.width / 2 ? px - tip.offsetWidth - 10 : px + 10) + "px";
+    };
+    svg.addEventListener("pointermove", move); svg.addEventListener("pointerleave", () => { tip.hidden = true; xl.setAttribute("visibility", "hidden"); });
+  }
+  function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-9)))); const f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+  const dayLab = (d, long) => { const [, mo, da] = d.split("-"); return long ? d : `${+da}/${+mo}`; };
+
+  function renderViews() {
+    const ids = visible(), end = lastDate(), from = addDays(end, -(range - 1));
+    const sets = ids.map((id) => ({ id, color: COLORS[id], label: data[id].name, vals: series(data[id], from, end).map((r) => ({ x: r.d, y: r.v == null ? null : +r.v })) }));
+    $("viewsSub").innerHTML = `<span class="num">${dayLab(from)} – ${dayLab(end)}</span>`;
+    $("viewsLegend").innerHTML = ids.length > 1 ? ids.map((id) => `<span><i class="dot" style="background:${COLORS[id]}"></i>${esc(data[id].name)}</span>`).join("") : "";
+    if (!sets.some((s) => s.vals.some((p) => p.y != null))) { $("viewsChart").innerHTML = `<div class="empty">ما كاين حتى رقم ديال المشاهدات فهاد المدة. زيدهم من "زيد الداتا" لتحت.</div>`; return; }
+    lineChart($("viewsChart"), sets, { area: true, xfmt: dayLab, aria: "المشاهدات كل نهار" });
+  }
+
+  function renderHeat() {
+    const ids = visible(), grid = activityFor(ids);
+    $("heatSub").textContent = ids.length > 1 ? "مجموع 4 ديال الكونطات" : data[ids[0]].name;
+    if (!grid) { $("heat").innerHTML = `<div class="empty">استورد ملف FollowerActivity من TikTok Studio باش تبان الساعات.</div>`; return; }
+    const max = Math.max(1, ...grid.flat()); const wd = new Date().getDay(); const best = bestHours(grid, wd, 1)[0];
+    let html = `<div class="heat"><span></span>` + Array.from({ length: 24 }, (_, h) => `<span style="text-align:center">${h % 3 === 0 ? h : ""}</span>`).join("");
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    order.forEach((w) => {
+      html += `<span class="rowlab" ${w === wd ? 'style="color:var(--fg);font-weight:600"' : ""}>${DAYS_AR[w].replace("ال", "")}</span>`;
+      grid[w].forEach((v, h) => {
+        const t = v / max; const isBest = w === wd && best && best.h === h;
+        html += `<span class="cell${isBest ? " best" : ""}" title="${DAYS_AR[w]} ${hh(h)}: ${fmt(v)}" style="background:color-mix(in oklab, var(--heat-1) ${Math.round(8 + t * 92)}%, var(--heat-0))"></span>`;
+      });
+    });
+    $("heat").innerHTML = html + "</div>";
+  }
+
+  function renderLives() {
+    const rows = visible().flatMap((id) => data[id].lives.map((l) => ({ ...l, id }))).sort((a, b) => (b.date + String(b.hour).padStart(2, "0")).localeCompare(a.date + String(a.hour).padStart(2, "0"))).slice(0, 12);
+    if (!rows.length) { $("livesTable").innerHTML = `<div class="empty">ما تسجّل حتى لايف. استعمل المدرب لفوق ولا زيد لايف قديم.</div>`; return; }
+    $("livesTable").innerHTML = `<table><thead><tr><th>الكونط</th><th>النهار</th><th>الساعة</th><th>المدة</th><th>الذروة</th><th>المعدل</th><th>فولوورز</th><th>هدايا</th><th>بداو يخرجو فـ</th></tr></thead><tbody>${rows.map((l) => {
+      const dm = dropMinute(l);
+      return `<tr><td><span class="card-name"><i class="dot" style="background:${COLORS[l.id]}"></i>${esc(data[l.id].name)}</span></td><td class="n">${l.date}</td><td class="n">${hh(+l.hour)}</td><td class="n">${l.dur}′</td><td class="n">${fmt(+l.peak)}</td><td class="n">${fmt(+l.avg)}</td><td class="n">${fmt(+l.nf)}</td><td class="n">${fmt(+l.gifts)}</td><td class="n">${dm == null ? "–" : dm + "′"}</td></tr>`;
+    }).join("")}</tbody></table>`;
+  }
+
+  /* ---------- live coach ---------- */
+  let live = null, tick = null;
+  try { live = JSON.parse(localStorage.getItem("tt-studio-live") || "null"); } catch (e) {}
+  const saveLive = () => { try { live ? localStorage.setItem("tt-studio-live", JSON.stringify(live)) : localStorage.removeItem("tt-studio-live"); } catch (e) {} };
+  const elapsedMin = () => live ? (Date.now() - live.t0) / 60000 : 0;
+
+  function coachVerdict() {
+    if (!live) return { cls: "", v: "ما كاين لايف دابا", why: "اختار الكونط وبدا اللايف. كل 5 دقايق دخل شحال من واحد كيتفرج." };
+    const pts = live.pts, el = elapsedMin(), li = liveInsight(live.ch), target = li.stopAt;
+    if (!pts.length) return { cls: "good", v: "بدا!", why: "دخل عدد المتفرجين ملي يدوزو 5 دقايق." };
+    const peak = Math.max(...pts.map((p) => p.v)), cur = pts[pts.length - 1].v, ratio = peak ? cur / peak : 1;
+    const prev = pts.length > 1 ? pts[pts.length - 2].v : cur, falling = cur < prev;
+    const under = pts.slice(-2).filter((p) => p.v < peak * DROP).length;
+    if (el < 15) return { cls: "good", v: "كمّل", why: "باقي فالبداية. الناس كيدخلو، عطيهم الوقت." };
+    if (under >= 2 || (ratio < DROP && pts.length < 3)) return { cls: "bad", v: "سالي دابا", why: `المتفرجين طاحو لـ ${Math.round(ratio * 100)}% من الذروة (${fmt(peak)}). اللايف ما بقاش كيجيب.` };
+    if (target && el > target + 10 && falling) return { cls: "bad", v: "قرّب تسالي", why: `دزتي ${Math.round(el)} دقيقة، والعادة ديالك كيبداو الناس يخرجو مع ${Math.round(target)} دقيقة.` };
+    if (ratio < 0.8 && falling) return { cls: "warn", v: "رجّع الطاقة ولا سالي", why: "المتفرجين كينقصو. دير شي تحدي، سؤال، ولا طلب لايكات. إلى ما طلعوش فـ 10 دقايق، سالي." };
+    return { cls: "good", v: "كمّل", why: ratio >= 0.95 ? "راك فالذروة. هادا أحسن وقت تطلب فيه الفولو." : "الجمهور مستقر. كمّل." };
+  }
+
+  function renderCoach() {
+    const opts = IDS.map((id) => `<option value="${id}">${esc(data[id].name)}</option>`).join("");
+    ["liveChannel", "dCh", "lCh", "csvCh"].forEach((k) => { const s = $(k), v = s.value; s.innerHTML = opts; if (v) s.value = v; else if (sel !== "all") s.value = sel; });
+    if (live) $("liveChannel").value = live.ch;
+    const on = !!live;
+    $("lamp").classList.toggle("on", on);
+    $("liveStart").disabled = on; $("liveChannel").disabled = on;
+    ["liveViewers", "liveAdd", "liveNf", "liveGifts", "liveStop"].forEach((k) => $(k).disabled = !on);
+    const v = coachVerdict();
+    $("signal").className = "signal " + v.cls; $("verdict").textContent = v.v; $("verdictWhy").textContent = v.why;
+    const li = liveInsight(on ? live.ch : (sel === "all" ? "c1" : sel));
+    $("coachSub").textContent = li.stopAt ? `العادة: الناس كيبداو يخرجو مع ${Math.round(li.stopAt)} دقيقة` : "";
+    const el = Math.floor(elapsedMin()); $("clock").textContent = String(Math.floor(el / 60)).padStart(2, "0") + ":" + String(el % 60).padStart(2, "0");
+    const chart = $("liveChart");
+    if (!on || live.pts.length < 2) { chart.innerHTML = `<div class="empty">${on ? "سجّل جوج أرقام على الأقل باش يبان المنحنى." : "المنحنى ديال المتفرجين غادي يبان هنا وقت اللايف."}</div>`; return; }
+    const peak = Math.max(...live.pts.map((p) => p.v));
+    lineChart(chart, [{ id: "live", color: "var(--accent)", label: "دابا", vals: live.pts.map((p) => ({ x: p.m, y: p.v })) }], { area: true, hline: peak * DROP, xfmt: (m, long) => long ? m + " دقيقة" : m + "′", aria: "المتفرجين فاللايف" });
+  }
+
+  $("liveStart").onclick = () => { live = { ch: $("liveChannel").value, t0: Date.now(), pts: [] }; saveLive(); renderCoach(); $("liveViewers").focus(); clearInterval(tick); tick = setInterval(renderCoach, 30000); };
+  const addPoint = () => { const n = parseInt($("liveViewers").value, 10); if (!live || isNaN(n)) return; live.pts.push({ m: Math.round(elapsedMin()), v: n }); $("liveViewers").value = ""; saveLive(); renderCoach(); };
+  $("liveAdd").onclick = addPoint;
+  $("liveViewers").addEventListener("keydown", (e) => { if (e.key === "Enter") addPoint(); });
+  $("liveStop").onclick = async () => {
+    if (!live) return;
+    const d = new Date(live.t0), vals = live.pts.map((p) => p.v);
+    const curve = []; for (let m = 0; m <= elapsedMin(); m += 5) { const p = live.pts.filter((q) => q.m <= m + 2).pop(); if (p) curve.push(p.v); }
+    const rec = { date: iso(new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12))), hour: d.getHours(), dur: Math.max(1, Math.round(elapsedMin())), peak: vals.length ? Math.max(...vals) : 0, avg: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0, nf: +$("liveNf").value || 0, gifts: +$("liveGifts").value || 0, curve };
+    const id = live.ch; data[id].lives.push(rec); live = null; saveLive(); clearInterval(tick);
+    $("liveNf").value = ""; $("liveGifts").value = "";
+    await persist(id); renderAll(); toast("اللايف تسجّل");
+  };
+
+  /* ---------- data entry ---------- */
+  function renderNames() {
+    $("namesRow").innerHTML = IDS.map((id, i) => `<div class="field"><label for="nm-${id}"><i class="dot" style="display:inline-block;background:${COLORS[id]}"></i> الكونط ${i + 1}</label><input id="nm-${id}" value="${esc(data[id].name)}" maxlength="30"></div>`).join("");
+  }
+  $("saveNames").onclick = async () => { for (const id of IDS) { const v = $("nm-" + id).value.trim(); if (v && v !== data[id].name) { data[id].name = v; await persist(id); } } renderAll(); toast("الأسماء تحفظو"); };
+
+  $("dDate").value = today(); $("lDate").value = today();
+  $("dayForm").addEventListener("submit", async (e) => {
+    e.preventDefault(); const id = $("dCh").value, d = $("dDate").value; if (!d) return;
+    const rec = Object.assign({}, data[id].days[d]);
+    [["v", "dV"], ["l", "dL"], ["c", "dC"], ["s", "dS"], ["f", "dF"], ["p", "dP"]].forEach(([k, f]) => { const v = $(f).value; if (v !== "") rec[k] = +v; });
+    data[id].days[d] = rec; await persist(id); renderAll(); toast("النهار تحفظ");
+    ["dV", "dL", "dC", "dS", "dF", "dP"].forEach((f) => $(f).value = "");
+  });
+  $("liveForm").addEventListener("submit", async (e) => {
+    e.preventDefault(); const id = $("lCh").value;
+    const curve = $("lCurve").value.split(/[,\s،]+/).map(Number).filter((n) => !isNaN(n) && n >= 0);
+    data[id].lives.push({ date: $("lDate").value, hour: +$("lHour").value, dur: +$("lDur").value, peak: +$("lPeak").value || (curve.length ? Math.max(...curve) : 0), avg: +$("lAvg").value || 0, nf: +$("lNf").value || 0, gifts: +$("lG").value || 0, curve });
+    await persist(id); renderAll(); toast("اللايف تزاد"); e.target.reset(); $("lDate").value = today();
+  });
+
+  function parseCSV(text) {
+    const rows = []; let row = [], cell = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+      else if (c === '"') q = true; else if (c === "," || c === ";" || c === "\t") { row.push(cell); cell = ""; }
+      else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; } else if (c !== "\r") cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter((r) => r.some((c) => c.trim()));
+  }
+  function parseDate(s) {
+    s = String(s).trim(); let m;
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+    if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+    const t = Date.parse(s + (/\d{4}/.test(s) ? "" : " " + new Date().getFullYear()));
+    if (isNaN(t)) return null; let d = new Date(t);
+    if (!/\d{4}/.test(s) && d > new Date(Date.now() + 864e5)) d.setFullYear(d.getFullYear() - 1);
+    return iso(new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12)));
+  }
+  const num = (s) => { const n = parseFloat(String(s).replace(/[,\s]/g, "")); return isNaN(n) ? null : n; };
+  function importRows(id, rows) {
+    const head = rows[0].map((h) => h.trim().toLowerCase()); const col = (...names) => head.findIndex((h) => names.some((n) => h === n || h.includes(n)));
+    const iD = col("date"), iH = col("hour"), iAct = col("active follower", "active"), iV = col("video views", "views"), iL = col("likes"), iC = col("comments"), iS = col("shares"), iF = head.findIndex((h) => h === "followers" || h === "total followers");
+    if (iD < 0) return 0; let n = 0; const ch = data[id];
+    if (iH >= 0 && iAct >= 0) {
+      const sum = {}, cnt = {};
+      rows.slice(1).forEach((r) => { const d = parseDate(r[iD]); const h = parseInt(r[iH], 10); const v = num(r[iAct]); if (!d || isNaN(h) || v == null) return; const w = new Date(d + "T12:00:00Z").getUTCDay(), k = w + "-" + (h % 24); sum[k] = (sum[k] || 0) + v; cnt[k] = (cnt[k] || 0) + 1; n++; });
+      const act = {}; for (let w = 0; w < 7; w++) act[w] = Array.from({ length: 24 }, (_, h) => cnt[w + "-" + h] ? Math.round(sum[w + "-" + h] / cnt[w + "-" + h]) : (ch.act[w] || [])[h] || 0);
+      ch.act = act; return n;
+    }
+    rows.slice(1).forEach((r) => {
+      const d = parseDate(r[iD]); if (!d) return; const rec = Object.assign({}, ch.days[d]);
+      [["v", iV], ["l", iL], ["c", iC], ["s", iS], ["f", iF]].forEach(([k, i]) => { if (i >= 0) { const v = num(r[i]); if (v != null) rec[k] = v; } });
+      ch.days[d] = rec; n++;
+    });
+    return n;
+  }
+  $("csvFile").addEventListener("change", async (e) => {
+    const id = $("csvCh").value; let total = 0;
+    for (const f of e.target.files) { try { total += importRows(id, parseCSV(await f.text())); } catch (err) {} }
+    e.target.value = "";
+    if (!total) { toast("ما لقيتش أعمدة معروفة فالملف. خاص يكون فيه Date."); return; }
+    if (data[id].demo) data[id].demo = false;
+    await persist(id); renderAll(); toast(`تزادو ${total} سطر لـ ${data[id].name}`);
+  });
+
+  $("exportBtn").onclick = () => {
+    const t = JSON.stringify(data); $("backup").value = t; $("backup").select();
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => toast("الداتا تنسخات"), () => toast("سيليكتيت النص، دير Copy"));
+  };
+  $("importBtn").onclick = async () => {
+    let p; try { p = JSON.parse($("backup").value); } catch (e) { toast("النص ماشي باك أب صحيح. لصق JSON كامل."); return; }
+    for (const [i, id] of IDS.entries()) if (p[id]) { data[id] = Object.assign(blank(id, i), p[id]); await persist(id); }
+    renderAll(); toast("الباك أب رجع");
+  };
+
+  /* ---------- example data, generated (never the user's figures) ---------- */
+  function makeDemo() {
+    const names = ["كوزينة مغربية", "كوميدي دارجة", "تيك فالدار", "سبور وفيتنس"];
+    const base = [9000, 22000, 4000, 12000], drift = [0.012, -0.015, 0.025, 0.0], er = [0.07, 0.11, 0.035, 0.06];
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    IDS.forEach((id, k) => {
+      const ch = blank(id, k); ch.name = names[k]; ch.demo = true;
+      let f = [41000, 128000, 9600, 56000][k];
+      for (let i = 59; i >= 0; i--) {
+        const d = addDays(today(), -i), t = 59 - i, posts = rnd() < (k === 2 ? 0.45 : 0.75) ? 1 + (rnd() < 0.25 ? 1 : 0) : 0;
+        const v = Math.round(base[k] * (1 + drift[k] * t * (k === 1 && t < 40 ? -0.3 : 1)) * (0.55 + rnd() * 0.9) * (posts ? 1 : 0.55));
+        const eng = v * er[k] * (0.8 + rnd() * 0.4); f += Math.round(v * 0.004 * (k === 1 && t > 45 ? -0.6 : 1) + (rnd() - 0.4) * 20);
+        ch.days[d] = { v, l: Math.round(eng * 0.85), c: Math.round(eng * 0.09), s: Math.round(eng * 0.06), f, p: posts };
+      }
+      const peakH = [21, 22, 19, 18][k];
+      for (let w = 0; w < 7; w++) ch.act[w] = Array.from({ length: 24 }, (_, h) => { const dist = Math.min(Math.abs(h - peakH), 24 - Math.abs(h - peakH)); const wk = (w === 5 || w === 6) ? 1.15 : 1; return Math.round([3800, 11000, 900, 5200][k] * wk * Math.exp(-dist * dist / 18) * (0.85 + rnd() * 0.3) + 40); });
+      const nLives = [6, 9, 2, 5][k];
+      for (let j = 0; j < nLives; j++) {
+        const hour = peakH + [-2, -1, 0, 1][Math.floor(rnd() * 4)], dur = 40 + Math.round(rnd() * 70), pk = Math.round([140, 420, 35, 190][k] * (0.7 + rnd() * 0.6));
+        const fall = 35 + Math.round(rnd() * 35), curve = [];
+        for (let m = 0; m <= dur; m += 5) curve.push(Math.max(1, Math.round(pk * (m < 20 ? 0.35 + m / 30 : m < fall ? 1 - (m - 20) / 200 : Math.max(0.2, 0.9 - (m - fall) / 45)) * (0.92 + rnd() * 0.16))));
+        ch.lives.push({ date: addDays(today(), -Math.round(rnd() * 50) - 1), hour: (hour + 24) % 24, dur, peak: Math.max(...curve), avg: Math.round(curve.reduce((a, b) => a + b, 0) / curve.length), nf: Math.round(pk * (0.05 + rnd() * 0.15) * (hour === peakH ? 1.6 : 1)), gifts: Math.round(pk * rnd() * 8), curve });
+      }
+      data[id] = ch;
+    });
+  }
+  $("demoBtn").onclick = async () => { makeDemo(); for (const id of IDS) await persist(id); renderAll(); toast("داتا ديال المثال تزادت"); };
+  $("clearDemo").onclick = async () => { for (const [i, id] of IDS.entries()) if (data[id].demo) { data[id] = blank(id, i); await persist(id); } renderAll(); $("entry").open = true; $("entry").scrollIntoView({ behavior: "smooth" }); };
+
+  /* ---------- wiring ---------- */
+  $("cards").addEventListener("click", (e) => { const b = e.target.closest("[data-ch]"); if (!b) return; sel = sel === b.dataset.ch ? "all" : b.dataset.ch; saveUi(); renderAll(); });
+  $("rangeSeg").addEventListener("click", (e) => { const b = e.target.closest("[data-range]"); if (!b) return; range = +b.dataset.range; saveUi(); renderAll(); });
+  let tt; function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => el.hidden = true, 2600); }
+
+  function renderAll() {
+    $("rangeSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.range === range)));
+    $("demoBanner").hidden = !IDS.some((id) => data[id].demo);
+    renderCards(); renderAdvice(); renderViews(); renderHeat(); renderLives(); renderCoach();
+    if (!document.activeElement || !document.activeElement.id || !document.activeElement.id.startsWith("nm-")) renderNames();
+  }
+
+  loadLocal();
+  if (!IDS.some((id) => Object.keys(data[id].days).length || data[id].lives.length)) makeDemo();
+  $("storeNote").textContent = "الداتا محفوظة فهاد المتصفح. دير باك أب من وقت لآخر.";
+  renderAll();
+  if (live) tick = setInterval(renderCoach, 30000);
+
+  $("ghRepo").value = gh.repo; $("ghPath").value = gh.path; $("ghToken").value = gh.token;
+  async function ghStart() {
+    ghNote("كيتقرا من GitHub…");
+    try {
+      const p = await ghLoad();
+      if (p) { applyRemote(p); try { localStorage.setItem(LS, JSON.stringify(data)); } catch (e) {} }
+      renderAll();
+      ghNote(p ? `محفوظ ف GitHub (${gh.repo})` : `مربوط مع ${gh.repo}. الملف غادي يتكرى مع أول حفظ.`);
+      return true;
+    } catch (e) {
+      ghNote("ما قدرتش نقرا من GitHub: " + (e.message || "مشكل فالكونيكسيون") + " الداتا اللي كتشوف هي ديال هاد المتصفح.");
+      return false;
+    }
+  }
+  $("ghForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    gh = { repo: $("ghRepo").value.trim() || GH_DEFAULT.repo, path: $("ghPath").value.trim() || GH_DEFAULT.path, token: $("ghToken").value.trim() };
+    try { localStorage.setItem(GH_KEY, JSON.stringify(gh)); } catch (err) {}
+    if (!gh.repo || !gh.token) { toast("دخّل السمية ديال الريبو والتوكن"); return; }
+    const ok = await ghStart(); toast(ok ? "تربط مع GitHub" : "الربط ما نجحش، شوف الرسالة لتحت");
+  });
+  $("ghForget").onclick = () => { gh.token = ""; $("ghToken").value = ""; try { localStorage.setItem(GH_KEY, JSON.stringify(gh)); } catch (e) {} ghNote("التوكن تمسح من هاد الجهاز."); };
+  // Pick up changes made on the other device when coming back to this tab.
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && ghOn() && !ghDirty && !live) ghStart(); });
+  window.addEventListener("beforeunload", (e) => { if (ghDirty) { e.preventDefault(); e.returnValue = ""; } });
+
+  if (ghOn()) ghStart();
+  // In claude.ai the data lives in the artifact's database instead of the browser.
+  else if (window.claude && window.claude.use) {
+    window.claude.use("db").then((store) => {
+      if (!store) return;
+      db = store;
+      $("storeNote").textContent = "الداتا محفوظة فالداتابيز ديال الصفحة، كتلقاها من أي جهاز.";
+      store.collection("channels").onSnapshot((snap) => {
+        if (snap.empty) return;
+        snap.docs.forEach((d) => { const i = IDS.indexOf(d.id); if (i >= 0 && d.exists) data[d.id] = Object.assign(blank(d.id, i), JSON.parse(JSON.stringify(d.data()))); });
+        renderAll();
+      }, () => {});
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
