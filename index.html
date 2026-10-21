@@ -210,7 +210,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
       <span class="muted small" id="vidSub"></span>
     </div>
     <div class="tbl-wrap" id="videosTable"></div>
-    <div class="muted small">"طار" = أكثر من 3 مرات المعدل ديال الكونط. "طاح" = أقل من النص. Creator Rewards كيحسب غير الفيديوهات اللي فيهم دقيقة ولا أكثر.</div>
+    <div class="muted small">"طار" = أكثر من 3 مرات المعدل ديال الكونط. "طاح" = أقل من النص. Creator Rewards كيخلّص غير الفيديوهات اللي فيهم دقيقة ولا أكثر وجابو 1000 مشاهدة مؤهلة على الأقل.</div>
   </section>
 
   <details class="entry" id="entry">
@@ -249,6 +249,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
           <div class="field"><label for="vC">كومنطيرات</label><input type="number" id="vC" min="0"></div>
           <div class="field"><label for="vS">بارطاج</label><input type="number" id="vS" min="0"></div>
           <div class="field"><label for="vRw">المداخيل ($)</label><input type="number" id="vRw" min="0" step="0.01"></div>
+          <div class="field"><label for="vCrs">Creator Rewards</label><select id="vCrs"><option value="">–</option><option value="ok">تخلّص</option><option value="bonus">بونوس (Récompense supplémentaire)</option><option value="low">ما وصلش 1000 (Nombre de vues insuffisant)</option><option value="no">ماشي مؤهل (Non éligible)</option></select></div>
         </div>
         <div class="field"><label for="vTitle">العنوان ولا الموضوع</label><input id="vTitle" maxlength="80" placeholder="Lyon, 17 octobre : où était la police ?"></div>
         <div><button class="btn primary" type="submit">حفظ الفيديو</button></div>
@@ -430,19 +431,22 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   function bestHours(grid, wd, n) { return grid[wd].map((v, h) => ({ h, v })).sort((a, b) => b.v - a.v).slice(0, n); }
   const vidKey = (v) => v.date + String(v.hour ?? 12).padStart(2, "0");
   function videoInsight(id) {
-    const vids = (data[id].videos || []).filter((v) => v.v != null).sort((a, b) => vidKey(a).localeCompare(vidKey(b)));
-    const out = { n: vids.length, vids, med: median(vids.slice(-20).map((v) => +v.v)) };
-    out.status = (v) => !out.med || vids.length < 4 ? null : v.v >= out.med * 3 ? "good" : v.v < out.med * 0.5 ? "bad" : "warn";
+    const vids = (data[id].videos || []).filter((v) => v.date).sort((a, b) => vidKey(a).localeCompare(vidKey(b)));
+    const withV = vids.filter((v) => v.v != null);
+    const out = { n: vids.length, vids, med: median(withV.slice(-20).map((v) => +v.v)) };
+    out.status = (v) => v.v == null || !out.med || withV.length < 4 ? null : v.v >= out.med * 3 ? "good" : v.v < out.med * 0.5 ? "bad" : "warn";
+    // Creator Rewards: how many of the latest videos in a row earned nothing (too few views, or not eligible).
+    out.unpaid = 0; for (let i = vids.length - 1; i >= 0 && (vids[i].crs === "low" || vids[i].crs === "no" || (vids[i].crs && +vids[i].rw === 0)); i--) out.unpaid++;
     // Best hour from the user's own videos, once there are enough with a known hour.
-    const timed = vids.filter((v) => v.hour != null), byH = {};
+    const timed = withV.filter((v) => v.hour != null), byH = {};
     timed.forEach((v) => (byH[v.hour] = byH[v.hour] || []).push(+v.v));
     const hs = Object.entries(byH).filter(([, a]) => a.length >= 2).map(([h, a]) => ({ h: +h, m: median(a) })).sort((a, b) => b.m - a.m);
     out.bestHour = timed.length >= 8 && hs.length ? hs[0].h : null;
     // Videos per day: compare per-video views on light days (1-2 posts) with heavy days (3+).
-    const byDay = {}; vids.forEach((v) => (byDay[v.date] = byDay[v.date] || []).push(+v.v));
+    const byDay = {}; withV.forEach((v) => (byDay[v.date] = byDay[v.date] || []).push(+v.v));
     const light = [], heavy = []; Object.values(byDay).forEach((a) => (a.length >= 3 ? heavy : light).push(...a));
     out.perDay = light.length >= 5 && heavy.length >= 5 ? (median(heavy) < median(light) * 0.6 ? 2 : 3) : null;
-    const prev = vids.slice(-13, -3).map((v) => +v.v), last3 = vids.slice(-3);
+    const prev = withV.slice(-13, -3).map((v) => +v.v), last3 = withV.slice(-3);
     out.slump = prev.length >= 5 && last3.length === 3 && last3.every((v) => v.v < median(prev) * 0.5);
     out.short = vids.filter((v) => v.dur && v.dur < 60).length;
     out.last = vids[vids.length - 1];
@@ -490,6 +494,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     }
     (data[id].notes || []).forEach((n) => tips.push([n.level || "warn", n.tag || "ملاحظة", n.text]));
     if (vi.slump) tips.push(["bad", "وقّف", "آخر 3 فيديوهات جابو أقل من النص ديال العادة. ما تزيدش فنفس الموضوع: بدّل الموضوع ولا الهوك فالفيديو الجاي، ولا ريّح نهار."]);
+    if (vi.unpaid >= 3) { const rm = Object.entries(data[id].rewardsMonths || {}).sort().pop(); tips.unshift(["bad", "ما كتخلصش", `آخر ${vi.unpaid} فيديوهات ما جابو حتى فلس فـ Creator Rewards: ما وصلوش 1000 مشاهدة مؤهلة، ولا ماشي مؤهلين.` + (rm ? ` ${rm[0]} كامل جاب $${rm[1].total.toFixed(2)} على ${fmt(rm[1].qualifiedViews)} مشاهدة مؤهلة.` : "") + " شوف أشمن نوع ديال الفيديوهات خلّصك قبل وعاود فيه."]); }
     if (vi.short) tips.push(["warn", "دقيقة", `${vi.short} فيديو أقل من دقيقة. هادو ما كيدخلوش فـ Creator Rewards، ما كيجيبو حتى فلس.`]);
     if (!m.hasData) { if (!m.period && !vi.n) tips.push(["none", "زيد", "دخل الأرقام ولا صيفط السكرينات ديال TikTok Studio باش نقدر نعطيك نصائح."]); return { m, vi, tips }; }
     const t = m.weekTrend;
@@ -598,13 +603,22 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     const rows = visible().flatMap((id) => { const vi = videoInsight(id); return vi.vids.map((v) => ({ ...v, id, st: vi.status(v) })); })
       .sort((a, b) => vidKey(b).localeCompare(vidKey(a))).slice(0, 25);
     const n = visible().reduce((a, id) => a + videoInsight(id).n, 0);
-    $("vidSub").textContent = n ? `${n} فيديو مسجّل` : "";
+    const rm = visible().length === 1 ? Object.entries(data[visible()[0]].rewardsMonths || {}).sort().pop() : null;
+    $("vidSub").innerHTML = (rm ? `Creator Rewards ${esc(rm[0])}: <b class="num">$${rm[1].total.toFixed(2)}</b> · RPM <span class="num">$${rm[1].rpm.toFixed(2)}</span> · <span class="num">${fmt(rm[1].qualifiedViews)}</span> مشاهدة مؤهلة · ` : "") + (n ? `${n} فيديو مسجّل` : "");
     if (!rows.length) { $("videosTable").innerHTML = `<div class="empty">ما تسجّل حتى فيديو. صيفط سكرين ديال "Contenu" من TikTok Studio، ولا زيدهم من "زيد الداتا".</div>`; return; }
     const lab = { good: "▲ طار", warn: "● عادي", bad: "▼ طاح" };
-    $("videosTable").innerHTML = `<table><thead><tr><th>الحالة</th><th>الفيديو</th><th>النهار</th><th>الساعة</th><th>الطول</th><th>المشاهدات</th><th>التفاعل</th><th>المداخيل</th>${visible().length > 1 ? "<th>الكونط</th>" : ""}</tr></thead><tbody>${rows.map((v) => {
+    $("videosTable").innerHTML = `<table><thead><tr><th>الحالة</th><th>الفيديو</th><th>النهار</th><th>الساعة</th><th>الطول</th><th>المشاهدات</th><th>التفاعل</th><th>Creator Rewards</th>${visible().length > 1 ? "<th>الكونط</th>" : ""}</tr></thead><tbody>${rows.map((v) => {
       const er = v.v ? ((+v.l || 0) + (+v.c || 0) + (+v.s || 0)) / v.v : null;
-      return `<tr><td>${v.st ? `<span class="pill ${v.st}">${lab[v.st]}</span>` : "–"}</td><td style="white-space:normal;min-width:160px">${esc(v.title || "–")}</td><td class="n">${v.date}</td><td class="n">${v.hour == null ? "–" : hh(+v.hour)}</td><td class="n">${v.dur ? (v.dur < 60 ? `<span class="pill bad">${v.dur}″</span>` : `<span class="num">${Math.floor(v.dur / 60)}′${String(v.dur % 60).padStart(2, "0")}″</span>`) : "–"}</td><td class="n">${fmt(+v.v)}</td><td class="n">${er == null || !(v.l || v.c || v.s) ? "–" : (er * 100).toFixed(1) + "%"}</td><td class="n">${v.rw == null ? "–" : "$" + (+v.rw).toFixed(2)}</td>${visible().length > 1 ? `<td><span class="card-name"><i class="dot" style="background:${COLORS[v.id]}"></i>${esc(data[v.id].name)}</span></td>` : ""}</tr>`;
+      return `<tr><td>${v.st ? `<span class="pill ${v.st}">${lab[v.st]}</span>` : "–"}</td><td style="white-space:normal;min-width:160px"><span dir="auto">${esc(v.title || "–")}</span></td><td class="n">${v.date}</td><td class="n">${v.hour == null ? "–" : hh(+v.hour)}</td><td class="n">${v.dur ? (v.dur < 60 ? `<span class="pill bad">${v.dur}″</span>` : `<span class="num">${Math.floor(v.dur / 60)}′${String(v.dur % 60).padStart(2, "0")}″</span>`) : "–"}</td><td class="n">${fmt(+v.v)}</td><td class="n">${er == null || !(v.l || v.c || v.s) ? "–" : (er * 100).toFixed(1) + "%"}</td><td>${rewardCell(v)}</td>${visible().length > 1 ? `<td><span class="card-name"><i class="dot" style="background:${COLORS[v.id]}"></i>${esc(data[v.id].name)}</span></td>` : ""}</tr>`;
     }).join("")}</tbody></table>`;
+  }
+
+  function rewardCell(v) {
+    const money = v.rw == null ? "" : `<span class="num">$${(+v.rw).toFixed(2)}</span>` + (v.rpm != null ? ` <span class="small num" style="color:var(--fg-3)">RPM $${(+v.rpm).toFixed(2)}</span>` : "");
+    if (v.crs === "low") return `<span class="pill bad">ما وصلش 1000</span>`;
+    if (v.crs === "no") return `<span class="pill bad">ماشي مؤهل</span>`;
+    if (v.crs === "bonus") return `<span class="pill good">بونوس</span> ${money}`;
+    return money || "–";
   }
 
   function renderSelects() {
@@ -628,7 +642,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   });
   $("vidForm").addEventListener("submit", async (e) => {
     e.preventDefault(); const id = $("vCh").value, num = (k) => $(k).value === "" ? undefined : +$(k).value;
-    const v = { date: $("vDate").value, hour: num("vHour"), dur: num("vDur"), v: num("vV"), l: num("vL"), c: num("vC"), s: num("vS"), rw: num("vRw"), title: $("vTitle").value.trim() || undefined };
+    const v = { date: $("vDate").value, hour: num("vHour"), dur: num("vDur"), v: num("vV"), l: num("vL"), c: num("vC"), s: num("vS"), rw: num("vRw"), crs: $("vCrs").value || undefined, title: $("vTitle").value.trim() || undefined };
     Object.keys(v).forEach((k) => v[k] === undefined && delete v[k]);
     (data[id].videos = data[id].videos || []).push(v);
     await persist(id); renderAll(); toast("الفيديو تزاد"); e.target.reset(); $("vDate").value = today();
