@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Noto+Kufi+Arabic:wght@600;800&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: control-room desk. Top bar = channel switcher + live lamp; summary row of channel cards;
-   "today" advice board; charts; live coach; data entry drawer at the bottom. RTL text, LTR time axes. */
+/* Layout: control-room desk. Top bar = channel switcher; summary row of channel cards;
+   "today" advice board; charts; videos table; data entry drawer at the bottom. RTL text, LTR time axes. */
 :root {
   --bg: #f4f3f7;
   --panel: #ffffff;
@@ -74,9 +74,6 @@ button { cursor: pointer; }
 .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .lamp { width: 14px; height: 14px; border-radius: 50%; background: var(--fg-3); box-shadow: 0 0 0 4px var(--sunk); flex: none; }
-.lamp.on { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); animation: pulse 1.6s infinite; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 8px var(--accent-soft); } }
-@media (prefers-reduced-motion: reduce) { .lamp.on { animation: none; } }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg button { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 14px; display: inline-flex; align-items: center; gap: 7px; }
 .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
@@ -94,7 +91,7 @@ button.card[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 1p
 .card-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .card-name h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .big { font-family: var(--f-num); font-size: 1.6rem; font-weight: 500; line-height: 1.1; direction: ltr; unicode-bidi: isolate; }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 6px; }
 .stat { display: flex; flex-direction: column; }
 .stat b { font-family: var(--f-num); font-weight: 500; font-size: .95rem; direction: ltr; unicode-bidi: isolate; text-align: start; }
 .label { font-size: .74rem; color: var(--fg-3); letter-spacing: .02em; }
@@ -142,16 +139,6 @@ th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: sta
 th { font-weight: 500; color: var(--fg-3); font-size: .78rem; }
 td.n { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
 
-/* live coach */
-.coach { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; }
-@media (max-width: 760px) { .coach { grid-template-columns: 1fr; } }
-.signal { border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 6px; background: var(--sunk); }
-.signal.good { background: var(--good-soft); }
-.signal.warn { background: var(--warn-soft); }
-.signal.bad { background: var(--bad-soft); }
-.signal .verdict { font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; }
-.signal.good .verdict { color: var(--good); } .signal.warn .verdict { color: var(--warn); } .signal.bad .verdict { color: var(--bad); }
-.clock { font-family: var(--f-num); font-size: 2rem; direction: ltr; unicode-bidi: isolate; }
 
 /* forms */
 .btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 14px; }
@@ -176,7 +163,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
 <div class="wrap notranslate" dir="rtl" lang="ar" translate="no">
   <header class="top">
     <div class="brand">
-      <span class="lamp" id="lamp" title="لايف"></span>
+      <span class="lamp" aria-hidden="true"></span>
       <div>
         <h1>Studio ديال القنوات</h1>
         <div class="muted small" id="subtitle">الأناليتيك ديال 4 ديال الكونطات ديال تيك توك فبلاصة وحدة</div>
@@ -217,46 +204,13 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     </section>
   </div>
 
-  <section class="panel" aria-labelledby="coachTitle" id="coachPanel">
+  <section class="panel" aria-labelledby="vidTitle">
     <div class="panel-head">
-      <h2 id="coachTitle">مدرب اللايف: فوقاش تكمّل وفوقاش توقف</h2>
-      <span class="muted small" id="coachSub"></span>
+      <h2 id="vidTitle">الفيديوهات: شنو طار وشنو طاح</h2>
+      <span class="muted small" id="vidSub"></span>
     </div>
-    <div class="coach">
-      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
-        <div class="signal" id="signal">
-          <span class="label">الإشارة</span>
-          <span class="verdict" id="verdict">ما كاين لايف دابا</span>
-          <span id="verdictWhy" class="small">اختار الكونط وبدا اللايف. كل 5 دقايق دخل شحال من واحد كيتفرج.</span>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label for="liveChannel">الكونط</label>
-            <select id="liveChannel"></select>
-          </div>
-          <span class="clock" id="clock">00:00</span>
-        </div>
-        <div class="row">
-          <button class="btn primary" id="liveStart">بدا اللايف</button>
-          <div class="field">
-            <label for="liveViewers">شحال كيتفرجو دابا</label>
-            <input type="number" id="liveViewers" min="0" inputmode="numeric" disabled>
-          </div>
-          <button class="btn" id="liveAdd" disabled>سجّل</button>
-        </div>
-        <div class="row">
-          <div class="field"><label for="liveNf">فولوورز جداد</label><input type="number" id="liveNf" min="0" disabled></div>
-          <div class="field"><label for="liveGifts">الهدايا (diamonds)</label><input type="number" id="liveGifts" min="0" disabled></div>
-          <button class="btn" id="liveStop" disabled>سالي وسجّل اللايف</button>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
-        <div class="chart" id="liveChart"></div>
-        <div class="legend small"><span><i class="dot" style="background:var(--accent)"></i>المتفرجين دابا</span><span><i class="dot" style="background:var(--fg-3)"></i>60% من الذروة (خط الخروج)</span></div>
-      </div>
-    </div>
-    <h3>اللايفات اللي فاتو</h3>
-    <div class="tbl-wrap" id="livesTable"></div>
+    <div class="tbl-wrap" id="videosTable"></div>
+    <div class="muted small">"طار" = أكثر من 3 مرات المعدل ديال الكونط. "طاح" = أقل من النص. Creator Rewards كيحسب غير الفيديوهات اللي فيهم دقيقة ولا أكثر.</div>
   </section>
 
   <details class="entry" id="entry">
@@ -283,20 +237,21 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
         <div><button class="btn primary" type="submit">حفظ النهار</button></div>
       </form>
 
-      <form class="entry-sec" id="liveForm">
-        <h3>زيد لايف قديم</h3>
+      <form class="entry-sec" id="vidForm">
+        <h3>زيد فيديو</h3>
         <div class="row">
-          <div class="field"><label for="lCh">الكونط</label><select id="lCh"></select></div>
-          <div class="field"><label for="lDate">النهار</label><input type="date" id="lDate" required></div>
-          <div class="field"><label for="lHour">ساعة البداية</label><input type="number" id="lHour" min="0" max="23" required></div>
-          <div class="field"><label for="lDur">المدة (دقايق)</label><input type="number" id="lDur" min="1" required></div>
-          <div class="field"><label for="lPeak">الذروة</label><input type="number" id="lPeak" min="0"></div>
-          <div class="field"><label for="lAvg">المعدل</label><input type="number" id="lAvg" min="0"></div>
-          <div class="field"><label for="lNf">فولوورز جداد</label><input type="number" id="lNf" min="0"></div>
-          <div class="field"><label for="lG">الهدايا</label><input type="number" id="lG" min="0"></div>
+          <div class="field"><label for="vCh">الكونط</label><select id="vCh"></select></div>
+          <div class="field"><label for="vDate">نهار النشر</label><input type="date" id="vDate" required></div>
+          <div class="field"><label for="vHour">الساعة</label><input type="number" id="vHour" min="0" max="23" placeholder="18"></div>
+          <div class="field"><label for="vDur">الطول (ثواني)</label><input type="number" id="vDur" min="1" placeholder="75"></div>
+          <div class="field"><label for="vV">المشاهدات</label><input type="number" id="vV" min="0" required></div>
+          <div class="field"><label for="vL">لايكات</label><input type="number" id="vL" min="0"></div>
+          <div class="field"><label for="vC">كومنطيرات</label><input type="number" id="vC" min="0"></div>
+          <div class="field"><label for="vS">بارطاج</label><input type="number" id="vS" min="0"></div>
+          <div class="field"><label for="vRw">المداخيل ($)</label><input type="number" id="vRw" min="0" step="0.01"></div>
         </div>
-        <div class="field"><label for="lCurve">المتفرجين كل 5 دقايق (اختياري، مفرّقين بفاصلة)</label><input id="lCurve" placeholder="12, 30, 48, 55, 41, 33" style="direction:ltr"></div>
-        <div><button class="btn primary" type="submit">حفظ اللايف</button></div>
+        <div class="field"><label for="vTitle">العنوان ولا الموضوع</label><input id="vTitle" maxlength="80" placeholder="Lyon, 17 octobre : où était la police ?"></div>
+        <div><button class="btn primary" type="submit">حفظ الفيديو</button></div>
       </form>
 
       <div class="entry-sec">
@@ -344,7 +299,6 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   const IDS = ["c1", "c2", "c3", "c4"];
   const COLORS = { c1: "var(--c1)", c2: "var(--c2)", c3: "var(--c3)", c4: "var(--c4)" };
   const DAYS_AR = ["الحد", "الاثنين", "الثلاث", "الربع", "الخميس", "الجمعة", "السبت"];
-  const DROP = 0.6; // leave a live once viewers fall under 60% of the peak
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (n) => n == null || isNaN(n) ? "–" : Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e4 ? (n / 1e3).toFixed(1) + "K" : Math.round(n).toLocaleString("en-US");
@@ -355,7 +309,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   const median = (a) => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
   const hh = (h) => String((h + 24) % 24).padStart(2, "0") + ":00";
 
-  function blank(id, i) { return { name: "الكونط " + (i + 1), handle: "", demo: false, days: {}, act: {}, lives: [] }; }
+  function blank(id, i) { return { name: "الكونط " + (i + 1), handle: "", demo: false, days: {}, act: {}, videos: [] }; }
 
   /* ---------- state + storage ---------- */
   let data = {}; IDS.forEach((id, i) => data[id] = blank(id, i));
@@ -446,14 +400,16 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
       er: v ? eng / v : null, gain: followersGain(ch, from, end), followers: lastFollowers(ch),
       posts: sumK(cur, "p"), postAgo: lastPostAgo(ch, end),
       vpp: sumK(cur, "p") ? v / sumK(cur, "p") : null,
-      lives: ch.lives.filter((l) => l.date >= from && l.date <= end),
     };
+    const rw = (ch.videos || []).filter((x) => x.date >= from && x.date <= end && x.rw != null);
+    m.rewards = rw.length ? rw.reduce((a, x) => a + +x.rw, 0) : null;
     // Without daily numbers, fall back to the latest period summary copied from TikTok Studio.
     const p = !hasData && (ch.periods || []).slice(-1)[0];
     if (p) {
       m.period = p; m.v = p.views; m.trend = p.change && p.change.views != null ? p.change.views : null;
       m.er = p.views ? ((p.likes || 0) + (p.comments || 0) + (p.shares || 0)) / p.views : null;
       if (p.netFollowers != null) m.gain = p.netFollowers;
+      if (p.rewardsUsd != null) m.rewards = p.rewardsUsd;
     }
     return m;
   }
@@ -472,27 +428,31 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     return any ? grid : null;
   }
   function bestHours(grid, wd, n) { return grid[wd].map((v, h) => ({ h, v })).sort((a, b) => b.v - a.v).slice(0, n); }
-  function dropMinute(l) {
-    const c = l.curve || []; if (c.length < 3) return null;
-    let pk = 0; c.forEach((v, i) => { if (v > c[pk]) pk = i; });
-    for (let i = pk + 1; i < c.length; i++) if (c[i] < c[pk] * DROP) return i * 5;
-    return null;
-  }
-  function liveInsight(id) {
-    const lives = data[id].lives; const out = { n: lives.length };
-    const drops = lives.map(dropMinute).filter((x) => x != null);
-    out.stopAt = median(drops.length ? drops : lives.map((l) => +l.dur).filter(Boolean));
-    out.fromCurves = drops.length > 0;
-    const byHour = {};
-    lives.forEach((l) => { const k = +l.hour; const s = ((+l.nf || 0) * 3 + (+l.avg || 0) + (+l.gifts || 0) / 50) / Math.max(1, (+l.dur || 60) / 60); (byHour[k] = byHour[k] || []).push(s); });
-    const hs = Object.entries(byHour).map(([h, a]) => ({ h: +h, s: a.reduce((x, y) => x + y, 0) / a.length, n: a.length })).sort((a, b) => b.s - a.s);
-    out.bestHour = lives.length >= 3 && hs.length ? hs[0].h : null;
-    out.nfPerHour = lives.length ? lives.reduce((s, l) => s + (+l.nf || 0), 0) / Math.max(1, lives.reduce((s, l) => s + (+l.dur || 0), 0) / 60) : null;
+  const vidKey = (v) => v.date + String(v.hour ?? 12).padStart(2, "0");
+  function videoInsight(id) {
+    const vids = (data[id].videos || []).filter((v) => v.v != null).sort((a, b) => vidKey(a).localeCompare(vidKey(b)));
+    const out = { n: vids.length, vids, med: median(vids.slice(-20).map((v) => +v.v)) };
+    out.status = (v) => !out.med || vids.length < 4 ? null : v.v >= out.med * 3 ? "good" : v.v < out.med * 0.5 ? "bad" : "warn";
+    // Best hour from the user's own videos, once there are enough with a known hour.
+    const timed = vids.filter((v) => v.hour != null), byH = {};
+    timed.forEach((v) => (byH[v.hour] = byH[v.hour] || []).push(+v.v));
+    const hs = Object.entries(byH).filter(([, a]) => a.length >= 2).map(([h, a]) => ({ h: +h, m: median(a) })).sort((a, b) => b.m - a.m);
+    out.bestHour = timed.length >= 8 && hs.length ? hs[0].h : null;
+    // Videos per day: compare per-video views on light days (1-2 posts) with heavy days (3+).
+    const byDay = {}; vids.forEach((v) => (byDay[v.date] = byDay[v.date] || []).push(+v.v));
+    const light = [], heavy = []; Object.values(byDay).forEach((a) => (a.length >= 3 ? heavy : light).push(...a));
+    out.perDay = light.length >= 5 && heavy.length >= 5 ? (median(heavy) < median(light) * 0.6 ? 2 : 3) : null;
+    const prev = vids.slice(-13, -3).map((v) => +v.v), last3 = vids.slice(-3);
+    out.slump = prev.length >= 5 && last3.length === 3 && last3.every((v) => v.v < median(prev) * 0.5);
+    out.short = vids.filter((v) => v.dur && v.dur < 60).length;
+    out.last = vids[vids.length - 1];
     return out;
   }
 
   /* ---------- rendering ---------- */
-  const visible = () => sel === "all" ? IDS : [sel];
+  const hasAny = (id) => { const c = data[id]; return Object.keys(c.days).length || (c.videos || []).length || (c.periods || []).length || Object.keys(c.act || {}).length; };
+  // In the all-channels view, leave out channels that have no data yet.
+  const visible = () => sel !== "all" ? [sel] : (IDS.filter(hasAny).length ? IDS.filter(hasAny) : IDS);
 
   function sparkSvg(rows, color) {
     const vals = rows.map((r) => +r.v || 0); const max = Math.max(1, ...vals); const W = 200, H = 34;
@@ -515,20 +475,23 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
           <div class="stat"><span class="label">فولوورز</span><b>${fmt(m.followers)}</b></div>
           <div class="stat"><span class="label">ربح</span><b>${m.gain == null ? "–" : (m.gain >= 0 ? "+" : "") + fmt(m.gain)}</b></div>
           <div class="stat"><span class="label">التفاعل</span><b>${m.er == null ? "–" : (m.er * 100).toFixed(1) + "%"}</b></div>
+          <div class="stat"><span class="label">المداخيل</span><b>${m.rewards == null ? "–" : "$" + m.rewards.toFixed(2)}</b></div>
         </div>
       </button>`;
     }).join("");
   }
 
   function tipsFor(id) {
-    const m = metrics(id), li = liveInsight(id), tips = [];
+    const m = metrics(id), vi = videoInsight(id), tips = [];
     const rv = (data[id].profile && data[id].profile.recentVideoViews) || [], mv = median(rv);
     if (mv != null && m.followers) {
       const reach = mv / m.followers;
       if (reach < 0.02) tips.push(["bad", "الوصول", `آخر الفيديوهات كيجيبو ${fmt(mv)} مشاهدة فالمعدل، يعني ${(reach * 100).toFixed(1)}% من ${fmt(m.followers)} فولوور. الفيديوهات ما كتوصلش حتى للفولوورز ديالك.`]);
     }
     (data[id].notes || []).forEach((n) => tips.push([n.level || "warn", n.tag || "ملاحظة", n.text]));
-    if (!m.hasData) { if (!m.period) tips.push(["none", "زيد", "دخل الأرقام ولا استورد CSV باش نقدر نعطيك نصائح."]); return { m, li, tips }; }
+    if (vi.slump) tips.push(["bad", "وقّف", "آخر 3 فيديوهات جابو أقل من النص ديال العادة. ما تزيدش فنفس الموضوع: بدّل الموضوع ولا الهوك فالفيديو الجاي، ولا ريّح نهار."]);
+    if (vi.short) tips.push(["warn", "دقيقة", `${vi.short} فيديو أقل من دقيقة. هادو ما كيدخلوش فـ Creator Rewards، ما كيجيبو حتى فلس.`]);
+    if (!m.hasData) { if (!m.period && !vi.n) tips.push(["none", "زيد", "دخل الأرقام ولا صيفط السكرينات ديال TikTok Studio باش نقدر نعطيك نصائح."]); return { m, vi, tips }; }
     const t = m.weekTrend;
     if (t != null && t <= -0.2) tips.push(["bad", "بدّل", `المشاهدات نازلة ${pct(t)} هاد السيمانة. بدّل الهوك ديال أول 3 ثواني ولا جرّب نوع آخر ديال المحتوى.`]);
     else if (t != null && t >= 0.15) tips.push(["good", "زيد", `الكونط طالع ${pct(t)} هاد السيمانة. زيد فنفس النوع ديال الفيديوهات ما دام خدام.`]);
@@ -536,27 +499,30 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     if (m.er != null && m.er < 0.04) tips.push(["warn", "تفاعل", `التفاعل ${(m.er * 100).toFixed(1)}% ضعيف. سول سؤال فالكابشن وجاوب على الكومنطيرات.`]);
     else if (m.er != null && m.er >= 0.1) tips.push(["good", "تفاعل", `التفاعل ${(m.er * 100).toFixed(1)}% مزيان بزاف.`]);
     if (m.gain != null && m.gain < 0) tips.push(["bad", "فولوورز", `خسرتي ${fmt(-m.gain)} فولوور. شوف آخر فيديوهات شنو بدّلتي.`]);
-    if (li.n && li.nfPerHour != null && li.nfPerHour < 2) tips.push(["warn", "لايف", "اللايفات كيجيبو فولوورز قلال. قصّر اللايف ولا بدّل الساعة."]);
     if (!tips.length) tips.push(["good", "مزيان", "كلشي مستقر. حافظ على نفس الريتم."]);
-    return { m, li, tips };
+    return { m, vi, tips };
   }
 
   function renderAdvice() {
     const wd = new Date().getDay();
     $("advDate").textContent = "اليوم " + DAYS_AR[wd];
     $("advice").innerHTML = visible().map((id) => {
-      const { li, tips } = tipsFor(id);
+      const { vi, tips } = tipsFor(id);
       const grid = activityFor([id]);
       const best = grid ? bestHours(grid, wd, 2) : [];
-      const post = best.length ? best.map((b) => `<span class="num">${hh(b.h - 1)}</span>`).join(" و ") : "<span class='muted'>ما كاين داتا ديال النشاط</span>";
-      const liveH = li.bestHour != null ? li.bestHour : (best[0] ? best[0].h : null);
-      const liveTxt = liveH == null ? "<span class='muted'>–</span>" : `<span class="num">${hh(liveH)}</span>` + (li.bestHour != null ? " <span class='muted small'>(من اللايفات ديالك)</span>" : " <span class='muted small'>(وقت الذروة)</span>");
-      const stop = li.stopAt ? `<span class="num">${Math.round(li.stopAt)}</span> دقيقة` + (li.fromCurves ? " <span class='muted small'>(من بعد كيطيحو المتفرجين)</span>" : "") : "<span class='muted'>سجّل لايفات باش نحسبها</span>";
+      const hours = vi.bestHour != null ? [vi.bestHour] : best.map((b) => b.h - 1);
+      const post = hours.length ? hours.map((h) => `<span class="num">${hh(h)}</span>`).join(" و ") + (vi.bestHour != null ? " <span class='muted small'>(من الفيديوهات ديالك)</span>" : " <span class='muted small'>(ساعة قبل ما يكثرو الفولوورز)</span>") : "<span class='muted'>ما كاين داتا ديال النشاط</span>";
+      const perDay = vi.perDay ? `<span class="num">${vi.perDay}</span> فيديوهات فالنهار، بيناتهم 3 ساعات` + (vi.perDay === 2 ? " <span class='muted small'>(ملي كتنشر 3 ولا أكثر، كل فيديو كيجيب أقل)</span>" : "") : "2 حتى 3 فالنهار، بيناتهم 3 ساعات <span class='muted small'>(حتى نجمعو داتا ديال الفيديوهات ديالك)</span>";
+      const nextAt = (() => {
+        const l = vi.last; if (!l || l.date !== today() || l.hour == null) return "<span class='muted'>ملي توصل الساعة اللي فوق</span>";
+        const wait = l.hour + 3, nowH = new Date().getHours();
+        return wait > nowH ? `تسنى حتى <span class="num">${hh(wait)}</span> <span class='muted small'>(نشرتي مع ${hh(l.hour)})</span>` : "دابا ولا مع الساعة اللي فوق";
+      })();
       return `<div class="adv">
         <div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(data[id].name)}</h3></div>
         <div class="adv-row"><span class="k">انشر مع</span><div>${post}</div></div>
-        <div class="adv-row"><span class="k">دير لايف مع</span><div>${liveTxt}</div></div>
-        <div class="adv-row"><span class="k">طوّل اللايف</span><div>${stop}</div></div>
+        <div class="adv-row"><span class="k">شحال</span><div>${perDay}</div></div>
+        <div class="adv-row"><span class="k">الفيديو الجاي</span><div>${nextAt}</div></div>
         <ul class="tips">${tips.map(([c, k, t]) => `<li><span class="pill ${c}">${k}</span><span>${esc(t)}</span></li>`).join("")}</ul>
       </div>`;
     }).join("");
@@ -625,67 +591,23 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     $("heat").innerHTML = html + "</div>";
   }
 
-  function renderLives() {
-    const rows = visible().flatMap((id) => data[id].lives.map((l) => ({ ...l, id }))).sort((a, b) => (b.date + String(b.hour).padStart(2, "0")).localeCompare(a.date + String(a.hour).padStart(2, "0"))).slice(0, 12);
-    if (!rows.length) { $("livesTable").innerHTML = `<div class="empty">ما تسجّل حتى لايف. استعمل المدرب لفوق ولا زيد لايف قديم.</div>`; return; }
-    $("livesTable").innerHTML = `<table><thead><tr><th>الكونط</th><th>النهار</th><th>الساعة</th><th>المدة</th><th>الذروة</th><th>المعدل</th><th>فولوورز</th><th>هدايا</th><th>بداو يخرجو فـ</th></tr></thead><tbody>${rows.map((l) => {
-      const dm = dropMinute(l);
-      return `<tr><td><span class="card-name"><i class="dot" style="background:${COLORS[l.id]}"></i>${esc(data[l.id].name)}</span></td><td class="n">${l.date}</td><td class="n">${hh(+l.hour)}</td><td class="n">${l.dur}′</td><td class="n">${fmt(+l.peak)}</td><td class="n">${fmt(+l.avg)}</td><td class="n">${fmt(+l.nf)}</td><td class="n">${fmt(+l.gifts)}</td><td class="n">${dm == null ? "–" : dm + "′"}</td></tr>`;
+  function renderVideos() {
+    const rows = visible().flatMap((id) => { const vi = videoInsight(id); return vi.vids.map((v) => ({ ...v, id, st: vi.status(v) })); })
+      .sort((a, b) => vidKey(b).localeCompare(vidKey(a))).slice(0, 25);
+    const n = visible().reduce((a, id) => a + videoInsight(id).n, 0);
+    $("vidSub").textContent = n ? `${n} فيديو مسجّل` : "";
+    if (!rows.length) { $("videosTable").innerHTML = `<div class="empty">ما تسجّل حتى فيديو. صيفط سكرين ديال "Contenu" من TikTok Studio، ولا زيدهم من "زيد الداتا".</div>`; return; }
+    const lab = { good: "▲ طار", warn: "● عادي", bad: "▼ طاح" };
+    $("videosTable").innerHTML = `<table><thead><tr><th>الحالة</th><th>الفيديو</th><th>النهار</th><th>الساعة</th><th>الطول</th><th>المشاهدات</th><th>التفاعل</th><th>المداخيل</th>${visible().length > 1 ? "<th>الكونط</th>" : ""}</tr></thead><tbody>${rows.map((v) => {
+      const er = v.v ? ((+v.l || 0) + (+v.c || 0) + (+v.s || 0)) / v.v : null;
+      return `<tr><td>${v.st ? `<span class="pill ${v.st}">${lab[v.st]}</span>` : "–"}</td><td style="white-space:normal;min-width:160px">${esc(v.title || "–")}</td><td class="n">${v.date}</td><td class="n">${v.hour == null ? "–" : hh(+v.hour)}</td><td class="n">${v.dur ? (v.dur < 60 ? `<span class="pill bad">${v.dur}″</span>` : `<span class="num">${Math.floor(v.dur / 60)}′${String(v.dur % 60).padStart(2, "0")}″</span>`) : "–"}</td><td class="n">${fmt(+v.v)}</td><td class="n">${er == null || !(v.l || v.c || v.s) ? "–" : (er * 100).toFixed(1) + "%"}</td><td class="n">${v.rw == null ? "–" : "$" + (+v.rw).toFixed(2)}</td>${visible().length > 1 ? `<td><span class="card-name"><i class="dot" style="background:${COLORS[v.id]}"></i>${esc(data[v.id].name)}</span></td>` : ""}</tr>`;
     }).join("")}</tbody></table>`;
   }
 
-  /* ---------- live coach ---------- */
-  let live = null, tick = null;
-  try { live = JSON.parse(localStorage.getItem("tt-studio-live") || "null"); } catch (e) {}
-  const saveLive = () => { try { live ? localStorage.setItem("tt-studio-live", JSON.stringify(live)) : localStorage.removeItem("tt-studio-live"); } catch (e) {} };
-  const elapsedMin = () => live ? (Date.now() - live.t0) / 60000 : 0;
-
-  function coachVerdict() {
-    if (!live) return { cls: "", v: "ما كاين لايف دابا", why: "اختار الكونط وبدا اللايف. كل 5 دقايق دخل شحال من واحد كيتفرج." };
-    const pts = live.pts, el = elapsedMin(), li = liveInsight(live.ch), target = li.stopAt;
-    if (!pts.length) return { cls: "good", v: "بدا!", why: "دخل عدد المتفرجين ملي يدوزو 5 دقايق." };
-    const peak = Math.max(...pts.map((p) => p.v)), cur = pts[pts.length - 1].v, ratio = peak ? cur / peak : 1;
-    const prev = pts.length > 1 ? pts[pts.length - 2].v : cur, falling = cur < prev;
-    const under = pts.slice(-2).filter((p) => p.v < peak * DROP).length;
-    if (el < 15) return { cls: "good", v: "كمّل", why: "باقي فالبداية. الناس كيدخلو، عطيهم الوقت." };
-    if (under >= 2 || (ratio < DROP && pts.length < 3)) return { cls: "bad", v: "سالي دابا", why: `المتفرجين طاحو لـ ${Math.round(ratio * 100)}% من الذروة (${fmt(peak)}). اللايف ما بقاش كيجيب.` };
-    if (target && el > target + 10 && falling) return { cls: "bad", v: "قرّب تسالي", why: `دزتي ${Math.round(el)} دقيقة، والعادة ديالك كيبداو الناس يخرجو مع ${Math.round(target)} دقيقة.` };
-    if (ratio < 0.8 && falling) return { cls: "warn", v: "رجّع الطاقة ولا سالي", why: "المتفرجين كينقصو. دير شي تحدي، سؤال، ولا طلب لايكات. إلى ما طلعوش فـ 10 دقايق، سالي." };
-    return { cls: "good", v: "كمّل", why: ratio >= 0.95 ? "راك فالذروة. هادا أحسن وقت تطلب فيه الفولو." : "الجمهور مستقر. كمّل." };
-  }
-
-  function renderCoach() {
+  function renderSelects() {
     const opts = IDS.map((id) => `<option value="${id}">${esc(data[id].name)}</option>`).join("");
-    ["liveChannel", "dCh", "lCh", "csvCh"].forEach((k) => { const s = $(k), v = s.value; s.innerHTML = opts; if (v) s.value = v; else if (sel !== "all") s.value = sel; });
-    if (live) $("liveChannel").value = live.ch;
-    const on = !!live;
-    $("lamp").classList.toggle("on", on);
-    $("liveStart").disabled = on; $("liveChannel").disabled = on;
-    ["liveViewers", "liveAdd", "liveNf", "liveGifts", "liveStop"].forEach((k) => $(k).disabled = !on);
-    const v = coachVerdict();
-    $("signal").className = "signal " + v.cls; $("verdict").textContent = v.v; $("verdictWhy").textContent = v.why;
-    const li = liveInsight(on ? live.ch : (sel === "all" ? "c1" : sel));
-    $("coachSub").textContent = li.stopAt ? `العادة: الناس كيبداو يخرجو مع ${Math.round(li.stopAt)} دقيقة` : "";
-    const el = Math.floor(elapsedMin()); $("clock").textContent = String(Math.floor(el / 60)).padStart(2, "0") + ":" + String(el % 60).padStart(2, "0");
-    const chart = $("liveChart");
-    if (!on || live.pts.length < 2) { chart.innerHTML = `<div class="empty">${on ? "سجّل جوج أرقام على الأقل باش يبان المنحنى." : "المنحنى ديال المتفرجين غادي يبان هنا وقت اللايف."}</div>`; return; }
-    const peak = Math.max(...live.pts.map((p) => p.v));
-    lineChart(chart, [{ id: "live", color: "var(--accent)", label: "دابا", vals: live.pts.map((p) => ({ x: p.m, y: p.v })) }], { area: true, hline: peak * DROP, xfmt: (m, long) => long ? m + " دقيقة" : m + "′", aria: "المتفرجين فاللايف" });
+    ["dCh", "vCh", "csvCh"].forEach((k) => { const s = $(k), v = s.value; s.innerHTML = opts; if (v) s.value = v; else if (sel !== "all") s.value = sel; });
   }
-
-  $("liveStart").onclick = () => { live = { ch: $("liveChannel").value, t0: Date.now(), pts: [] }; saveLive(); renderCoach(); $("liveViewers").focus(); clearInterval(tick); tick = setInterval(renderCoach, 30000); };
-  const addPoint = () => { const n = parseInt($("liveViewers").value, 10); if (!live || isNaN(n)) return; live.pts.push({ m: Math.round(elapsedMin()), v: n }); $("liveViewers").value = ""; saveLive(); renderCoach(); };
-  $("liveAdd").onclick = addPoint;
-  $("liveViewers").addEventListener("keydown", (e) => { if (e.key === "Enter") addPoint(); });
-  $("liveStop").onclick = async () => {
-    if (!live) return;
-    const d = new Date(live.t0), vals = live.pts.map((p) => p.v);
-    const curve = []; for (let m = 0; m <= elapsedMin(); m += 5) { const p = live.pts.filter((q) => q.m <= m + 2).pop(); if (p) curve.push(p.v); }
-    const rec = { date: iso(new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12))), hour: d.getHours(), dur: Math.max(1, Math.round(elapsedMin())), peak: vals.length ? Math.max(...vals) : 0, avg: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0, nf: +$("liveNf").value || 0, gifts: +$("liveGifts").value || 0, curve };
-    const id = live.ch; data[id].lives.push(rec); live = null; saveLive(); clearInterval(tick);
-    $("liveNf").value = ""; $("liveGifts").value = "";
-    await persist(id); renderAll(); toast("اللايف تسجّل");
-  };
 
   /* ---------- data entry ---------- */
   function renderNames() {
@@ -693,7 +615,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   }
   $("saveNames").onclick = async () => { for (const id of IDS) { const v = $("nm-" + id).value.trim(); if (v && v !== data[id].name) { data[id].name = v; await persist(id); } } renderAll(); toast("الأسماء تحفظو"); };
 
-  $("dDate").value = today(); $("lDate").value = today();
+  $("dDate").value = today(); $("vDate").value = today();
   $("dayForm").addEventListener("submit", async (e) => {
     e.preventDefault(); const id = $("dCh").value, d = $("dDate").value; if (!d) return;
     const rec = Object.assign({}, data[id].days[d]);
@@ -701,11 +623,12 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     data[id].days[d] = rec; await persist(id); renderAll(); toast("النهار تحفظ");
     ["dV", "dL", "dC", "dS", "dF", "dP"].forEach((f) => $(f).value = "");
   });
-  $("liveForm").addEventListener("submit", async (e) => {
-    e.preventDefault(); const id = $("lCh").value;
-    const curve = $("lCurve").value.split(/[,\s،]+/).map(Number).filter((n) => !isNaN(n) && n >= 0);
-    data[id].lives.push({ date: $("lDate").value, hour: +$("lHour").value, dur: +$("lDur").value, peak: +$("lPeak").value || (curve.length ? Math.max(...curve) : 0), avg: +$("lAvg").value || 0, nf: +$("lNf").value || 0, gifts: +$("lG").value || 0, curve });
-    await persist(id); renderAll(); toast("اللايف تزاد"); e.target.reset(); $("lDate").value = today();
+  $("vidForm").addEventListener("submit", async (e) => {
+    e.preventDefault(); const id = $("vCh").value, num = (k) => $(k).value === "" ? undefined : +$(k).value;
+    const v = { date: $("vDate").value, hour: num("vHour"), dur: num("vDur"), v: num("vV"), l: num("vL"), c: num("vC"), s: num("vS"), rw: num("vRw"), title: $("vTitle").value.trim() || undefined };
+    Object.keys(v).forEach((k) => v[k] === undefined && delete v[k]);
+    (data[id].videos = data[id].videos || []).push(v);
+    await persist(id); renderAll(); toast("الفيديو تزاد"); e.target.reset(); $("vDate").value = today();
   });
 
   function parseCSV(text) {
@@ -781,12 +704,10 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
       }
       const peakH = [21, 22, 19, 18][k];
       for (let w = 0; w < 7; w++) ch.act[w] = Array.from({ length: 24 }, (_, h) => { const dist = Math.min(Math.abs(h - peakH), 24 - Math.abs(h - peakH)); const wk = (w === 5 || w === 6) ? 1.15 : 1; return Math.round([3800, 11000, 900, 5200][k] * wk * Math.exp(-dist * dist / 18) * (0.85 + rnd() * 0.3) + 40); });
-      const nLives = [6, 9, 2, 5][k];
-      for (let j = 0; j < nLives; j++) {
-        const hour = peakH + [-2, -1, 0, 1][Math.floor(rnd() * 4)], dur = 40 + Math.round(rnd() * 70), pk = Math.round([140, 420, 35, 190][k] * (0.7 + rnd() * 0.6));
-        const fall = 35 + Math.round(rnd() * 35), curve = [];
-        for (let m = 0; m <= dur; m += 5) curve.push(Math.max(1, Math.round(pk * (m < 20 ? 0.35 + m / 30 : m < fall ? 1 - (m - 20) / 200 : Math.max(0.2, 0.9 - (m - fall) / 45)) * (0.92 + rnd() * 0.16))));
-        ch.lives.push({ date: addDays(today(), -Math.round(rnd() * 50) - 1), hour: (hour + 24) % 24, dur, peak: Math.max(...curve), avg: Math.round(curve.reduce((a, b) => a + b, 0) / curve.length), nf: Math.round(pk * (0.05 + rnd() * 0.15) * (hour === peakH ? 1.6 : 1)), gifts: Math.round(pk * rnd() * 8), curve });
+      ch.videos = [];
+      for (let i = 20; i >= 1; i--) {
+        const n = 1 + Math.floor(rnd() * 3);
+        for (let j = 0; j < n; j++) { const vv = Math.round(base[k] * 0.6 * (0.3 + rnd() * 1.4) * (rnd() < 0.06 ? 8 : 1) * (j >= 2 ? 0.5 : 1)); ch.videos.push({ date: addDays(today(), -i), hour: (peakH - 3 + j * 3 + 24) % 24, dur: rnd() < 0.2 ? 35 + Math.round(rnd() * 20) : 62 + Math.round(rnd() * 90), v: vv, l: Math.round(vv * er[k] * 0.85), c: Math.round(vv * er[k] * 0.09), s: Math.round(vv * er[k] * 0.06), rw: +(vv / 1000 * 0.4).toFixed(2), title: ["وصفة سريعة", "سكيتش ديال الدرب", "تطبيق مفيد", "تمرين 10 دقايق"][k] + " #" + (21 - i) }); }
       }
       data[id] = ch;
     });
@@ -802,15 +723,14 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   function renderAll() {
     $("rangeSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.range === range)));
     $("demoBanner").hidden = !IDS.some((id) => data[id].demo);
-    renderCards(); renderAdvice(); renderViews(); renderHeat(); renderLives(); renderCoach();
+    renderSelects(); renderCards(); renderAdvice(); renderViews(); renderHeat(); renderVideos();
     if (!document.activeElement || !document.activeElement.id || !document.activeElement.id.startsWith("nm-")) renderNames();
   }
 
   loadLocal();
-  if (!IDS.some((id) => Object.keys(data[id].days).length || data[id].lives.length)) makeDemo();
+  if (!IDS.some((id) => Object.keys(data[id].days).length || (data[id].videos || []).length)) makeDemo();
   $("storeNote").textContent = "الداتا محفوظة فهاد المتصفح. دير باك أب من وقت لآخر.";
   renderAll();
-  if (live) tick = setInterval(renderCoach, 30000);
 
   $("ghRepo").value = gh.repo; $("ghPath").value = gh.path; $("ghToken").value = gh.token;
   async function ghStart() {
@@ -835,7 +755,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   });
   $("ghForget").onclick = () => { gh.token = ""; $("ghToken").value = ""; try { localStorage.setItem(GH_KEY, JSON.stringify(gh)); } catch (e) {} ghNote("التوكن تمسح من هاد الجهاز."); };
   // Pick up changes made on the other device when coming back to this tab.
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && ghOn() && !ghDirty && !live) ghStart(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && ghOn() && !ghDirty) ghStart(); });
   window.addEventListener("beforeunload", (e) => { if (ghDirty) { e.preventDefault(); e.returnValue = ""; } });
 
   if (ghOn()) ghStart();
