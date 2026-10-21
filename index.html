@@ -609,10 +609,11 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     const lab = { good: "▲ طار", warn: "● عادي", bad: "▼ طاح" };
     $("videosTable").innerHTML = `<table><thead><tr><th>الحالة</th><th>الفيديو</th><th>النهار</th><th>الساعة</th><th>الطول</th><th>المشاهدات</th><th>التفاعل</th><th>Creator Rewards</th>${visible().length > 1 ? "<th>الكونط</th>" : ""}</tr></thead><tbody>${rows.map((v) => {
       const er = v.v ? ((+v.l || 0) + (+v.c || 0) + (+v.s || 0)) / v.v : null;
-      return `<tr><td>${v.st ? `<span class="pill ${v.st}">${lab[v.st]}</span>` : "–"}</td><td style="white-space:normal;min-width:160px"><span dir="auto">${esc(v.title || "–")}</span></td><td class="n">${v.date}</td><td class="n">${v.hour == null ? "–" : hh(+v.hour)}</td><td class="n">${v.dur ? (v.dur < 60 ? `<span class="pill bad">${v.dur}″</span>` : `<span class="num">${Math.floor(v.dur / 60)}′${String(v.dur % 60).padStart(2, "0")}″</span>`) : "–"}</td><td class="n">${fmt(+v.v)}</td><td class="n">${er == null || !(v.l || v.c || v.s) ? "–" : (er * 100).toFixed(1) + "%"}</td><td>${rewardCell(v)}</td>${visible().length > 1 ? `<td><span class="card-name"><i class="dot" style="background:${COLORS[v.id]}"></i>${esc(data[v.id].name)}</span></td>` : ""}</tr>`;
+      return `<tr><td>${v.st ? `<span class="pill ${v.st}">${lab[v.st]}</span>` : "–"}</td><td style="white-space:normal;min-width:160px"><span dir="auto" title="${esc(v.title || "")}">${esc(shortTitle(v.title))}</span></td><td class="n">${v.date}</td><td class="n">${v.hour == null ? "–" : hh(+v.hour)}</td><td class="n">${v.dur ? (v.dur < 60 ? `<span class="pill bad">${v.dur}″</span>` : `<span class="num">${Math.floor(v.dur / 60)}′${String(v.dur % 60).padStart(2, "0")}″</span>`) : "–"}</td><td class="n">${fmt(+v.v)}</td><td class="n">${er == null || !(v.l || v.c || v.s) ? "–" : (er * 100).toFixed(1) + "%"}</td><td>${rewardCell(v)}</td>${visible().length > 1 ? `<td><span class="card-name"><i class="dot" style="background:${COLORS[v.id]}"></i>${esc(data[v.id].name)}</span></td>` : ""}</tr>`;
     }).join("")}</tbody></table>`;
   }
 
+  const shortTitle = (t) => { t = String(t || "–").replace(/\s#\S+/g, "").trim(); return t.length > 70 ? t.slice(0, 68) + "…" : t; };
   function rewardCell(v) {
     const money = v.rw == null ? "" : `<span class="num">$${(+v.rw).toFixed(2)}</span>` + (v.rpm != null ? ` <span class="small num" style="color:var(--fg-3)">RPM $${(+v.rpm).toFixed(2)}</span>` : "");
     if (v.crs === "low") return `<span class="pill bad">ما وصلش 1000</span>`;
@@ -681,7 +682,8 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   const num = (s) => { const n = parseFloat(String(s).replace(/[,\s]/g, "")); return isNaN(n) ? null : n; };
   function importRows(id, rows) {
     const head = rows[0].map((h) => h.replace(/^\ufeff/, "").trim().toLowerCase()); const col = (...names) => head.findIndex((h) => names.some((n) => h === n || h.includes(n)));
-    const iD = col("date"), iH = col("hour"), iAct = col("active follower", "active"), iV = col("video views", "views"), iL = col("likes"), iC = col("comments"), iS = col("shares"), iF = head.findIndex((h) => h === "followers" || h === "total followers"),
+    // Content exports date each video by "Post time"; "Time" there is only the export date.
+    const iD = head.indexOf("post time") >= 0 ? head.indexOf("post time") : col("date"), iH = col("hour"), iAct = col("active follower", "active"), iV = col("video views", "views"), iL = col("likes"), iC = col("comments"), iS = col("shares"), iF = head.findIndex((h) => h === "followers" || h === "total followers"),
       iU = col("total viewers"), iNU = col("new viewers"), iRU = col("returning viewers"),
       iT = col("video title", "title"), iLink = col("video link", "link");
     if (iD < 0) return 0; let n = 0; const ch = data[id];
@@ -715,7 +717,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     const id = $("csvCh").value; let total = 0;
     for (const f of e.target.files) { try { total += importRows(id, parseCSV(await f.text())); } catch (err) {} }
     e.target.value = "";
-    if (!total) { toast("ما لقيتش أعمدة معروفة فالملف. خاص يكون فيه Date."); return; }
+    if (!total) { toast("ما لقيتش أعمدة معروفة فالملف. خاص يكون فيه Date ولا Post time."); return; }
     if (data[id].demo) data[id].demo = false;
     await persist(id); renderAll(); toast(`تزادو ${total} سطر لـ ${data[id].name}`);
   });
