@@ -78,6 +78,8 @@ button { cursor: pointer; }
 .seg button { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 14px; display: inline-flex; align-items: center; gap: 7px; }
 .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; object-fit: cover; background: var(--sunk); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--ring, var(--line)); }
+.avatar.lg { width: 44px; height: 44px; }
 
 .banner { background: var(--warn-soft); color: var(--fg); border-radius: var(--r); padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .banner[hidden] { display: none !important; }
@@ -243,7 +245,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     <summary>زيد الداتا (يدوي، CSV من TikTok Studio، باك أب)</summary>
     <div class="entry-body">
       <div class="entry-sec">
-        <h3>الأسماء ديال الكونطات</h3>
+        <h3>الأسماء واللوغو ديال الكونطات</h3>
         <div class="row" id="namesRow"></div>
         <div><button class="btn" id="saveNames">حفظ الأسماء</button></div>
       </div>
@@ -480,6 +482,9 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   }
 
   /* ---------- rendering ---------- */
+  // The channel's logo when there is one (ringed in its chart colour), else its colour dot.
+  const chIcon = (id, cls = "") => data[id].avatar && /^data:image\/(png|jpeg|webp);base64,/.test(data[id].avatar)
+    ? `<img class="avatar ${cls}" src="${data[id].avatar}" alt="" style="--ring:${COLORS[id]}">` : `<i class="dot" style="background:${COLORS[id]}"></i>`;
   const hasAny = (id) => { const c = data[id]; return Object.keys(c.days).length || (c.videos || []).length || (c.periods || []).length || Object.keys(c.act || {}).length; };
   // In the all-channels view, leave out channels that have no data yet.
   const visible = () => sel !== "all" ? [sel] : (IDS.filter(hasAny).length ? IDS.filter(hasAny) : IDS);
@@ -497,7 +502,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     $("cards").innerHTML = IDS.map((id) => {
       const m = metrics(id), h = health(m);
       return `<button class="card" data-ch="${id}" aria-pressed="${sel === id}">
-        <div class="card-head"><div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(m.ch.name)}</h3></div><span class="pill ${h.cls}">${h.txt}</span></div>
+        <div class="card-head"><div class="card-name">${chIcon(id, "lg")}<h3>${esc(m.ch.name)}</h3></div><span class="pill ${h.cls}">${h.txt}</span></div>
         ${m.ch.handle ? `<div class="small num" style="color:var(--fg-3);margin-top:-8px;text-align:end">${esc(m.ch.handle)}</div>` : ""}
         <div><div class="label">${m.period ? `المشاهدات ف ${periodDays(m.period)} يوم (TikTok Studio)` : `المشاهدات ف ${range} يوم`}</div><div class="big">${m.hasData || m.period ? fmt(m.v) : "–"} <span class="small" style="color:var(--fg-3)">${pct(m.trend)}</span></div></div>
         ${m.hasData ? sparkSvg(m.cur, COLORS[id]) : `<div class="spark"></div>`}
@@ -550,7 +555,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
         return wait > nowH ? `تسنى حتى <span class="num">${hh(wait)}</span> <span class='muted small'>(نشرتي مع ${hh(l.hour)})</span>` : "دابا ولا مع الساعة اللي فوق";
       })();
       return `<div class="adv">
-        <div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(data[id].name)}</h3></div>
+        <div class="card-name">${chIcon(id)}<h3>${esc(data[id].name)}</h3></div>
         <div class="adv-row"><span class="k">انشر مع</span><div>${post}</div></div>
         <div class="adv-row"><span class="k">قاعدة 6 يام</span><div>${(() => { const st = streakState(id); return `<span class="pill ${st.cls}">${st.v}</span>`; })()}</div></div>
         <div class="adv-row"><span class="k">شحال</span><div>${perDay}</div></div>
@@ -686,7 +691,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
         cells.push(`<div class="day ${rest ? "rest" : "plan"}" title="${d}"><span>${wd}</span><b>${+d.slice(8)}</b><span>${rest ? "حبس" : run}</span></div>`);
       }
       return `<div class="streak-ch">
-        ${visible().length > 1 ? `<div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(ch.name)}</h3></div>` : ""}
+        ${visible().length > 1 ? `<div class="card-name">${chIcon(id)}<h3>${esc(ch.name)}</h3></div>` : ""}
         <div class="verdict-box ${st.cls}">
           <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="v">${st.v}</span><span class="small">${st.why}</span></div>
           <div style="display:flex;align-items:center;gap:12px"><span class="counter" dir="ltr">${Math.min(st.run, 99)}/${MAX_RUN}</span>
@@ -711,8 +716,20 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
 
   /* ---------- data entry ---------- */
   function renderNames() {
-    $("namesRow").innerHTML = IDS.map((id, i) => `<div class="field"><label for="nm-${id}"><i class="dot" style="display:inline-block;background:${COLORS[id]}"></i> الكونط ${i + 1}</label><input id="nm-${id}" value="${esc(data[id].name)}" maxlength="30"></div>`).join("");
+    $("namesRow").innerHTML = IDS.map((id, i) => `<div class="field"><label for="nm-${id}"><i class="dot" style="display:inline-block;background:${COLORS[id]}"></i> الكونط ${i + 1}</label><div style="display:flex;gap:8px;align-items:center">${chIcon(id)}<input id="nm-${id}" value="${esc(data[id].name)}" maxlength="30"><label class="btn" style="white-space:nowrap">اللوغو<input type="file" accept="image/*" data-logo="${id}" hidden></label></div></div>`).join("");
   }
+  // Logos are shrunk to 128px and kept in the data file, so they stay private with the rest.
+  $("namesRow").addEventListener("change", async (e) => {
+    const inp = e.target.closest("[data-logo]"); if (!inp || !inp.files[0]) return;
+    const id = inp.dataset.logo, img = new Image(), url = URL.createObjectURL(inp.files[0]);
+    try {
+      await new Promise((ok, ko) => { img.onload = ok; img.onerror = ko; img.src = url; });
+      const c = document.createElement("canvas"), S = 128, m = Math.min(img.width, img.height); c.width = c.height = S;
+      c.getContext("2d").drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, S, S);
+      data[id].avatar = c.toDataURL("image/jpeg", 0.85); await persist(id); renderAll(); toast("اللوغو تبدّل");
+    } catch (err) { toast("ما قدرتش نقرا الصورة. جرّب صورة JPG ولا PNG."); }
+    finally { URL.revokeObjectURL(url); inp.value = ""; }
+  });
   $("saveNames").onclick = async () => { for (const id of IDS) { const v = $("nm-" + id).value.trim(); if (v && v !== data[id].name) { data[id].name = v; await persist(id); } } renderAll(); toast("الأسماء تحفظو"); };
 
   $("dDate").value = today(); $("vDate").value = today();
