@@ -132,6 +132,24 @@ button.card[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 1p
 .heat .rowlab { font-family: var(--f-body); font-size: 11px; display: flex; align-items: center; }
 .empty { border: 1px dashed var(--line); border-radius: 8px; padding: 18px; color: var(--fg-2); text-align: center; font-size: .9rem; }
 
+/* 6-day posting rule */
+.streak-ch { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.verdict-box { border-radius: 10px; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: var(--sunk); }
+.verdict-box.good { background: var(--good-soft); } .verdict-box.warn { background: var(--warn-soft); } .verdict-box.bad { background: var(--bad-soft); }
+.verdict-box .v { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.4; }
+.verdict-box.good .v { color: var(--good); } .verdict-box.warn .v { color: var(--warn); } .verdict-box.bad .v { color: var(--bad); }
+.counter { display: inline-block; font-family: var(--f-num); font-size: 1.7rem; white-space: nowrap; }
+.strip-wrap { overflow-x: auto; padding: 3px; }
+.strip { display: grid; grid-template-columns: repeat(20, minmax(36px, 1fr)); gap: 4px; }
+.day { border-radius: 6px; padding: 4px 0; text-align: center; font-size: 10.5px; line-height: 1.3; background: var(--sunk); color: var(--fg-3); border: 1px solid transparent; display: flex; flex-direction: column; gap: 1px; min-width: 0; font-family: var(--f-body); }
+button.day { cursor: pointer; }
+.day b { font-family: var(--f-num); font-size: 13px; font-weight: 500; }
+.day.posted { background: var(--accent); color: var(--on-accent); }
+.day.rest { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); }
+.day.plan { background: var(--accent-soft); color: var(--fg-2); }
+.day.today { outline: 2px solid var(--fg); outline-offset: 1px; }
+.key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; }
+
 /* tables */
 .tbl-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: .88rem; }
@@ -182,6 +200,14 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   </div>
 
   <section class="cards" id="cards" aria-label="القنوات"></section>
+
+  <section class="panel" aria-labelledby="streakTitle">
+    <div class="panel-head">
+      <h2 id="streakTitle">قاعدة 6 يام: فوقاش تنشر وفوقاش تحبس</h2>
+      <span class="muted small">6 يام ديال النشر متتابعين، والنهار 7 راحة. أي نهار بلا نشر كيرجّع العداد لـ 0.</span>
+    </div>
+    <div id="streak"></div>
+  </section>
 
   <section class="panel" aria-labelledby="advTitle">
     <div class="panel-head">
@@ -526,6 +552,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
       return `<div class="adv">
         <div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(data[id].name)}</h3></div>
         <div class="adv-row"><span class="k">انشر مع</span><div>${post}</div></div>
+        <div class="adv-row"><span class="k">قاعدة 6 يام</span><div>${(() => { const st = streakState(id); return `<span class="pill ${st.cls}">${st.v}</span>`; })()}</div></div>
         <div class="adv-row"><span class="k">شحال</span><div>${perDay}</div></div>
         <div class="adv-row"><span class="k">الفيديو الجاي</span><div>${nextAt}</div></div>
         <ul class="tips">${tips.map(([c, k, t]) => `<li><span class="pill ${c}">${k}</span><span>${esc(t)}</span></li>`).join("")}</ul>
@@ -621,6 +648,61 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     if (v.crs === "bonus") return `<span class="pill good">بونوس</span> ${money}`;
     return money || "–";
   }
+
+  /* ---------- 6-day posting rule ---------- */
+  const MAX_RUN = 6;
+  // A day counts as posted if the user marked it, else if a video or a daily post count says so.
+  function postedOn(ch, d) {
+    const o = (ch.postDays || {})[d];
+    if (o != null) return !!o;
+    return (ch.videos || []).some((v) => v.date === d) || +((ch.days[d] || {}).p) > 0;
+  }
+  function runEnding(ch, d) { let n = 0; while (n < 60 && postedOn(ch, d)) { n++; d = addDays(d, -1); } return n; }
+  function streakState(id) {
+    const ch = data[id], t = today(), prev = runEnding(ch, addDays(t, -1)), done = postedOn(ch, t);
+    const run = done ? prev + 1 : prev;
+    let cls, v, why;
+    if (done && run > MAX_RUN) { cls = "bad"; v = "خرقتي القاعدة"; why = `نشرتي ${run} يام متتابعين. ما تنشر والو غدا، باش يرتاح الكونط.`; }
+    else if (done && run === MAX_RUN) { cls = "warn"; v = "غدا حبس"; why = "اليوم هو النهار 6. غدا ما تنشر حتى فيديو."; }
+    else if (done) { cls = "good"; v = `نشرتي اليوم (النهار ${run} من ${MAX_RUN})`; why = `تقدر تنشر غدا. ${MAX_RUN - run === 1 ? "غدا آخر نهار قبل الراحة." : `باقي ليك ${MAX_RUN - run} يام قبل الراحة.`}`; }
+    else if (prev >= MAX_RUN) { cls = "bad"; v = "اليوم حبس"; why = `نشرتي ${prev} يام متتابعين. ما تنشر حتى فيديو اليوم، وغدا ترجع تبدا من النهار 1.`; }
+    else { cls = "good"; v = `تقدر تنشر اليوم (النهار ${prev + 1} من ${MAX_RUN})`; why = prev + 1 === MAX_RUN ? "إلى نشرتي اليوم، غدا حبس." : prev === 0 ? "العداد بدا من 0. ما كاين حتى خطر." : `باقي ${MAX_RUN - prev - 1} يام من بعد اليوم قبل الراحة.`; }
+    return { ch, t, prev, done, run, cls, v, why };
+  }
+  function renderStreak() {
+    $("streak").innerHTML = visible().map((id) => {
+      const st = streakState(id), ch = st.ch, cells = [];
+      for (let i = -13; i <= 0; i++) {
+        const d = addDays(st.t, i), on = postedOn(ch, d), n = on ? runEnding(ch, d) : 0;
+        const rest = !on && runEnding(ch, addDays(d, -1)) >= MAX_RUN;
+        const wd = DAYS_AR[new Date(d + "T12:00:00Z").getUTCDay()].replace("ال", "");
+        cells.push(`<button class="day${on ? " posted" : rest ? " rest" : ""}${i === 0 ? " today" : ""}" data-toggle="${id}|${d}" title="${d}: ${on ? "نشرتي (ضغط باش تبدّل)" : "ما نشرتيش (ضغط باش تبدّل)"}"><span>${wd}</span><b>${+d.slice(8)}</b><span>${on ? (n > MAX_RUN ? "⚠ " + n : n) : rest ? "حبس" : "·"}</span></button>`);
+      }
+      // Next 6 days, assuming a video every day the rule allows (today included, if not posted yet).
+      let run = st.done ? st.run : st.prev >= MAX_RUN ? 0 : st.prev + 1;
+      for (let i = 1; i <= 6; i++) {
+        const d = addDays(st.t, i), wd = DAYS_AR[new Date(d + "T12:00:00Z").getUTCDay()].replace("ال", "");
+        const rest = run >= MAX_RUN; run = rest ? 0 : run + 1;
+        cells.push(`<div class="day ${rest ? "rest" : "plan"}" title="${d}"><span>${wd}</span><b>${+d.slice(8)}</b><span>${rest ? "حبس" : run}</span></div>`);
+      }
+      return `<div class="streak-ch">
+        ${visible().length > 1 ? `<div class="card-name"><i class="dot" style="background:${COLORS[id]}"></i><h3>${esc(ch.name)}</h3></div>` : ""}
+        <div class="verdict-box ${st.cls}">
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="v">${st.v}</span><span class="small">${st.why}</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span class="counter" dir="ltr">${Math.min(st.run, 99)}/${MAX_RUN}</span>
+          <button class="btn ${st.done ? "" : "primary"}" data-toggle="${id}|${st.t}">${st.done ? "ما نشرتش اليوم" : "نشرت اليوم ✓"}</button></div>
+        </div>
+        <div class="strip-wrap"><div class="strip">${cells.join("")}</div></div>
+        <div class="legend small"><span><i class="key" style="background:var(--accent)"></i>نشرتي (الرقم = النهار فالعداد)</span><span><i class="key" style="background:var(--sunk)"></i>ما نشرتيش</span><span><i class="key" style="background:var(--bad-soft);border:1px solid var(--bad)"></i>حبس</span><span><i class="key" style="background:var(--accent-soft)"></i>الأيام الجاية</span><span>ضغط على أي نهار فات باش تصلحو.</span></div>
+      </div>`;
+    }).join("");
+  }
+  $("streak").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-toggle]"); if (!b) return;
+    const [id, d] = b.dataset.toggle.split("|"), ch = data[id];
+    const now = postedOn(ch, d); ch.postDays = Object.assign({}, ch.postDays, { [d]: now ? 0 : 1 });
+    await persist(id); renderAll(); toast(now ? `${d}: ما نشرتيش` : `${d}: نشرتي`);
+  });
 
   function renderSelects() {
     const opts = IDS.map((id) => `<option value="${id}">${esc(data[id].name)}</option>`).join("");
@@ -767,7 +849,7 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   function renderAll() {
     $("rangeSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.range === range)));
     $("demoBanner").hidden = !IDS.some((id) => data[id].demo);
-    renderSelects(); renderCards(); renderAdvice(); renderViews(); renderHeat(); renderVideos();
+    renderSelects(); renderCards(); renderStreak(); renderAdvice(); renderViews(); renderHeat(); renderVideos();
     if (!document.activeElement || !document.activeElement.id || !document.activeElement.id.startsWith("nm-")) renderNames();
   }
 
