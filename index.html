@@ -542,7 +542,8 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     sets.forEach((s) => {
       const pts = s.vals.map((p, i) => p.y == null ? null : [x(i), y(p.y)]);
       let d = "", pen = false; pts.forEach((p) => { if (!p) { pen = false; return; } d += (pen ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); pen = true; });
-      if (sets.length === 1 && opts.area) marks += `<path d="${d}L${x(n - 1)} ${y(0)}L${x(0)} ${y(0)}Z" fill="${s.color}" opacity=".12"/>`;
+      const firstI = pts.findIndex(Boolean), endI = pts.length - 1 - [...pts].reverse().findIndex(Boolean);
+      if (sets.length === 1 && opts.area && firstI >= 0 && !pts.slice(firstI, endI + 1).includes(null)) marks += `<path d="${d}L${x(endI)} ${y(0)}L${x(firstI)} ${y(0)}Z" fill="${s.color}" opacity=".12"/>`;
       marks += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
       const lastI = pts.map((p, i) => p ? i : -1).filter((i) => i >= 0).pop();
       if (lastI != null) { marks += `<circle cx="${pts[lastI][0]}" cy="${pts[lastI][1]}" r="4" fill="${s.color}" stroke="var(--panel)" stroke-width="2"/>`; labels.push({ y: pts[lastI][1], x: pts[lastI][0], t: s.label }); }
@@ -567,11 +568,13 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
 
   function renderViews() {
     const ids = visible(), end = lastDate(), from = addDays(end, -(range - 1));
-    const sets = ids.map((id) => ({ id, color: COLORS[id], label: data[id].name, vals: series(data[id], from, end).map((r) => ({ x: r.d, y: r.v == null ? null : +r.v })) }));
+    const anyV = ids.some((id) => series(data[id], from, end).some((r) => r.v != null)), k = anyV ? "v" : "u";
+    $("viewsTitle").textContent = anyV ? "المشاهدات كل نهار" : "المتفرجين كل نهار";
+    const sets = ids.map((id) => ({ id, color: COLORS[id], label: data[id].name, vals: series(data[id], from, end).map((r) => ({ x: r.d, y: r[k] == null ? null : +r[k] })) }));
     $("viewsSub").innerHTML = `<span class="num">${dayLab(from)} – ${dayLab(end)}</span>`;
     $("viewsLegend").innerHTML = ids.length > 1 ? ids.map((id) => `<span><i class="dot" style="background:${COLORS[id]}"></i>${esc(data[id].name)}</span>`).join("") : "";
     if (!sets.some((s) => s.vals.some((p) => p.y != null))) { $("viewsChart").innerHTML = `<div class="empty">ما كاين حتى رقم ديال المشاهدات فهاد المدة. زيدهم من "زيد الداتا" لتحت.</div>`; return; }
-    lineChart($("viewsChart"), sets, { area: true, xfmt: dayLab, aria: "المشاهدات كل نهار" });
+    lineChart($("viewsChart"), sets, { area: true, xfmt: dayLab, aria: $("viewsTitle").textContent });
   }
 
   function renderHeat() {
@@ -642,10 +645,20 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
     if (cell || row.length) { row.push(cell); rows.push(row); }
     return rows.filter((r) => r.some((c) => c.trim()));
   }
+  const MONTHS = [["janvier", "january", "janv", "jan"], ["fevrier", "february", "fevr", "feb"], ["mars", "march", "mar"], ["avril", "april", "avr", "apr"], ["mai", "may"], ["juin", "june", "jun"], ["juillet", "july", "juil", "jul"], ["aout", "august", "aug"], ["septembre", "september", "sept", "sep"], ["octobre", "october", "oct"], ["novembre", "november", "nov"], ["decembre", "december", "dec"]];
   function parseDate(s) {
     s = String(s).trim(); let m;
     if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
     if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+    // TikTok Studio writes dates like "14 octobre" (French UI) or "October 14" (English UI), often without a year.
+    const lower = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const mi = MONTHS.findIndex((names) => names.some((n) => new RegExp("(^|[^a-z])" + n + "([^a-z]|$)").test(lower)));
+    const dm = lower.match(/(^|\D)(\d{1,2})(\D|$)/), ym = lower.match(/\d{4}/);
+    if (mi >= 0 && dm) {
+      const now = new Date(); let y = ym ? +ym[0] : now.getFullYear();
+      if (!ym && new Date(Date.UTC(y, mi, +dm[2])) > new Date(now.getTime() + 864e5)) y--;
+      return `${y}-${String(mi + 1).padStart(2, "0")}-${dm[2].padStart(2, "0")}`;
+    }
     const t = Date.parse(s + (/\d{4}/.test(s) ? "" : " " + new Date().getFullYear()));
     if (isNaN(t)) return null; let d = new Date(t);
     if (!/\d{4}/.test(s) && d > new Date(Date.now() + 864e5)) d.setFullYear(d.getFullYear() - 1);
@@ -653,8 +666,10 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
   }
   const num = (s) => { const n = parseFloat(String(s).replace(/[,\s]/g, "")); return isNaN(n) ? null : n; };
   function importRows(id, rows) {
-    const head = rows[0].map((h) => h.trim().toLowerCase()); const col = (...names) => head.findIndex((h) => names.some((n) => h === n || h.includes(n)));
-    const iD = col("date"), iH = col("hour"), iAct = col("active follower", "active"), iV = col("video views", "views"), iL = col("likes"), iC = col("comments"), iS = col("shares"), iF = head.findIndex((h) => h === "followers" || h === "total followers");
+    const head = rows[0].map((h) => h.replace(/^\ufeff/, "").trim().toLowerCase()); const col = (...names) => head.findIndex((h) => names.some((n) => h === n || h.includes(n)));
+    const iD = col("date"), iH = col("hour"), iAct = col("active follower", "active"), iV = col("video views", "views"), iL = col("likes"), iC = col("comments"), iS = col("shares"), iF = head.findIndex((h) => h === "followers" || h === "total followers"),
+      iU = col("total viewers"), iNU = col("new viewers"), iRU = col("returning viewers"),
+      iT = col("video title", "title"), iLink = col("video link", "link");
     if (iD < 0) return 0; let n = 0; const ch = data[id];
     if (iH >= 0 && iAct >= 0) {
       const sum = {}, cnt = {};
@@ -662,9 +677,22 @@ details.entry > summary { padding: 14px 18px; cursor: pointer; font-family: var(
       const act = {}; for (let w = 0; w < 7; w++) act[w] = Array.from({ length: 24 }, (_, h) => cnt[w + "-" + h] ? Math.round(sum[w + "-" + h] / cnt[w + "-" + h]) : (ch.act[w] || [])[h] || 0);
       ch.act = act; return n;
     }
+    if (iT >= 0 || iLink >= 0) { // Content export: one row per video
+      const vids = ch.videos = ch.videos || [];
+      rows.slice(1).forEach((r) => {
+        const d = parseDate(r[iD]); if (!d) return;
+        const v = { date: d, title: iT >= 0 ? r[iT] : undefined, link: iLink >= 0 ? r[iLink] : undefined, v: iV >= 0 ? num(r[iV]) : null, l: iL >= 0 ? num(r[iL]) : null, c: iC >= 0 ? num(r[iC]) : null, s: iS >= 0 ? num(r[iS]) : null };
+        Object.keys(v).forEach((k) => (v[k] == null || v[k] === "") && delete v[k]);
+        const old = vids.find((x) => (v.link && x.link === v.link) || (!v.link && x.title === v.title && x.date === v.date));
+        old ? Object.assign(old, v) : vids.push(v); n++;
+      });
+      return n;
+    }
     rows.slice(1).forEach((r) => {
       const d = parseDate(r[iD]); if (!d) return; const rec = Object.assign({}, ch.days[d]);
-      [["v", iV], ["l", iL], ["c", iC], ["s", iS], ["f", iF]].forEach(([k, i]) => { if (i >= 0) { const v = num(r[i]); if (v != null) rec[k] = v; } });
+      const main = iV >= 0 ? iV : iU; if (main >= 0 && num(r[main]) == null) return; // today's row is still "undefined"
+      [["v", iV], ["l", iL], ["c", iC], ["s", iS], ["f", iF], ["u", iU], ["nu", iNU], ["ru", iRU]].forEach(([k, i]) => { if (i >= 0) { const v = num(r[i]); if (v != null) rec[k] = v; } });
+      if (Object.keys(rec).length === 0) return;
       ch.days[d] = rec; n++;
     });
     return n;
